@@ -13,15 +13,16 @@ class Utilities():
                                     "custid":"CustId",
                                     "sporttype":"SporttypeId",
                                     "bettype":"BettypeId"}, inplace = True)
-        except Exception as e:
-            print(type(e).__name__)
+        except AttributeError:
+            # print(type(e).__name__)
             data =  pd.read_csv(location + file_name)
         # finally:
         return data
     
     def save_data(location, file_name, dataframe):
         # if type(file) == pd.core.DataFrane
-        dataframe.to_csv(location + file_name)
+        dataframe.to_csv(location + file_name, index = False)
+        # dataframe.to_csv(location + file_name)
 
     def filter_categorie(categorie, dataframe):
         """
@@ -30,6 +31,7 @@ class Utilities():
         >>> Output  :   filtered pandas.DataFrame
         """
         cols = [col for col in dataframe.columns.to_list() if categorie in col]
+        # cols = cols + ['C']
         cat_df = dataframe[cols]
 
         # filter non-play customers
@@ -72,7 +74,7 @@ class Utilities():
     def transform_bet_type(x):
         return 'b' + str(x)
 
-    def preprocess_data(data, cat_map):
+    def preprocess_data(data, str_to_id):
         data = data[data.BettypeId.isin([1, 3, 7, 8])]
         yourdata = data[['ReportDate', 'CustId', 'IBCWinloss', 'IBCTurnover', 'BetCount']]
         yourdata.rename(columns = {'CustId':'C'}, inplace = True)
@@ -82,9 +84,13 @@ class Utilities():
         mydata['BettypeId'] = data['BettypeId'].apply(Utilities.transform_bet_type) # mydata['BettypeId']
         mydata['Day'] = data['ReportDate'].apply(Utilities.is_weekend) # mydata['Day']
         mydata['Category_in_short'] = mydata['SporttypeId'] + mydata['BettypeId'] + mydata['IsLive'] + mydata['Day']
-        mydata['CAT'] = mydata['Category_in_short'].apply(lambda z : cat_map[z]['CategoryID'])
+        mydata['CAT'] = mydata['Category_in_short'].apply(lambda z : str_to_id[z]['CategoryID'])
+
+        old = pd.merge(yourdata, mydata, right_index = True, left_index = True)
+
+        new = old.groupby(['C', 'CAT', 'ReportDate']).sum().reset_index()
     
-        return pd.merge(yourdata, mydata, right_index = True, left_index = True)
+        return new
 
     def transform_category_mapping(data):
         data = data.set_index('CategoryID')
@@ -94,7 +100,9 @@ class Utilities():
         mydata['BettypeId'] = data['BettypeID'].apply(Utilities.transform_bet_type) # mydata['BettypeId'
         mydata['Day'] = data['IsWeekend'].apply(lambda z : 'WE' if z else 'WD')
         mydata['Category_in_short'] = mydata['SportID'] + mydata['BettypeId'] + mydata['IsLive'] + mydata['Day']
-        mydata = mydata[['Category_in_short']].reset_index().set_index('Category_in_short')
+        mydata1 = mydata[['Category_in_short']].reset_index().set_index('Category_in_short')
         # print("mydata\n", mydata)
-        cat_map = mydata.to_dict(orient = 'index')
-        return cat_map
+        mydata2 = mydata[['Category_in_short']]
+        str_to_id = mydata1.to_dict(orient = 'index')
+        id_to_str = mydata2.to_dict(orient = 'index')
+        return str_to_id, id_to_str

@@ -44,7 +44,7 @@ class DataTransformer():
                                             customers_dict[customer][sport+bet+live+day+cat+'_'+kind] = 0
         return customers_dict
 
-    def generate_daily_stats_customer_based(dataframe, example_day):
+    def generate_daily_stats_customer_based(dataframe, example_day, id_to_str):
         """
         For a single day, build a dictionary whose parent keys are customers
         This kind of dictionary is helpful to calculcate INTERNAL SCORE
@@ -61,7 +61,8 @@ class DataTransformer():
         example_df = dataframe[dataframe.ReportDate == example_day]
         for row in example_df.itertuples():
             custid = row.C
-            category = row.SporttypeId + row.BettypeId + row.IsLive + row.Day
+            # category = row.SporttypeId + row.BettypeId + row.IsLive + row.Day
+            category = id_to_str[row.CAT]['Category_in_short']
             if custid not in daily_stats_cus_based:
                 daily_stats_cus_based[custid] = {} 
             daily_stats_cus_based[custid][category + 'BC'] = row.BetCount
@@ -127,13 +128,13 @@ class DataTransformer():
                     customers_dict[customer][attribute+'_out'] += stats.percentileofscore(stat_of_turnover_in_a_day, value)/100
         return customers_dict
 
-    def transform(dataframe):
+    def transform(dataframe, id_to_str):
         active_days = dataframe.ReportDate.unique()
         customer_list = dataframe.C.unique()
         customers_dict = DataTransformer.build_outline_of_customer_dict(customer_list)
-        for active_day in tqdm(active_days, desc = 'Preprocessing...'):
+        for active_day in tqdm(active_days, desc = 'Transforming...'):
 
-            daily_stats_cus_based = DataTransformer.generate_daily_stats_customer_based(dataframe, active_day)
+            daily_stats_cus_based = DataTransformer.generate_daily_stats_customer_based(dataframe, active_day, id_to_str)
 
             DataTransformer.compute_internal_score(daily_stats_cus_based, customers_dict)
 
@@ -142,6 +143,8 @@ class DataTransformer():
             customers_dict = DataTransformer.compute_outstanding_score(daily_stats_cat_based, customers_dict)
 
         features_df = pd.DataFrame(customers_dict.values(), index = customers_dict.keys())
+        features_df.index.name = 'C'
+        features_df = features_df.reset_index()
         print('Features\n',features_df.head(5))
         return features_df
         

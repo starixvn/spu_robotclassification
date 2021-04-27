@@ -112,12 +112,14 @@ class PredictionController():
             if len(daily_training_results_data.index) == 0:
                 continue
             concat_df = daily_test_data.merge(daily_training_results_data, how = 'inner', left_on = ['C', 'CAT'], right_on = ['C', 'CAT'])
-            # print("concat_df\n", concat_df)
             collection_of_boundaries, concat_df = PredictionController.validate_training_results(concat_df, config)
             mydf = PredictionController.process_prediction_phase(collection_of_boundaries, concat_df)
             # print("mydf\n", mydf.head())
+            # has_duplicate = mydf.duplicated()
+            # duplicates = mydf[has_duplicate]
+            # if len(duplicates.index) > 0:
+            #     print("duplicates\n", duplicates)
             predict_full_info_list = mydf.to_dict(orient = 'records')
-            DB_Interaction.insert_to_PredictedResults_table(predict_full_info_list, day, config)
+            DB_Interaction.insert_to_PredictedResults_table(predict_full_info_list, day, config, right_after_prediction = 0)
             DB_Interaction.insert_to_TrainingResults_table(predict_full_info_list, day, config, is_training_phase = 0)
             # print(f"======================================{day} DONE=======================================")
-        # return mydf

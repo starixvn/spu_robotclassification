@@ -25,7 +25,7 @@ class DB_Interaction():
                 # print("jsonList\n", jsonList)
                 _,_, out1 = cur.callproc("SPU_AIML_InsertTrainResults", [jsonList, date_insert, None])
                 if out1 is not None:
-                    print(out1)
+                    print("insert_to_TrainingResults_table", out1, jsonList)
                 conn.commit()
         cur.close()
         conn.close()
@@ -56,18 +56,25 @@ class DB_Interaction():
         df['SLD'] = df['SLD'].astype(float)
         return df
 
-    def insert_to_PredictedResults_table(predict_full_info_list, date_insert, config):
+    def insert_to_PredictedResults_table(predict_full_info_list, date_insert, config, right_after_prediction = 1):
         chunks = [predict_full_info_list[x:x + config.chunk_size] for x in range(0, len(predict_full_info_list), config.chunk_size)]
         conn = MySQLConnection(user = config.aimluser, password = config.aimlpwd,
                                 host = config.aimlhost, port = config.aimlport, database = config.aimldb)
         cur = conn.cursor()
-        # for chunk in tqdm(chunks, desc="Insert Winloss-Prediction-Table"):
-        for chunk in chunks:
-            jsonList = json.dumps(chunk)
-            _,_, out1 = cur.callproc("SPU_AIML_InsertWinlossPrediction", [jsonList, date_insert, None])
-            if out1 is not None:
-                print(out1)
-            conn.commit()
+        if right_after_prediction:
+            for chunk in tqdm(chunks, desc = "Insert Winloss-Prediction-Table"):
+                jsonList = json.dumps(chunk)
+                _,_, out1 = cur.callproc("SPU_AIML_InsertWinlossPrediction", [jsonList, date_insert, None])
+                if out1 is not None:
+                    print("insert_to_PredictedResults_table", out1, jsonList)
+                conn.commit()
+        else:
+            for chunk in chunks:
+                jsonList = json.dumps(chunk)
+                _,_, out1 = cur.callproc("SPU_AIML_InsertWinlossPrediction", [jsonList, date_insert, None])
+                if out1 is not None:
+                    print("insert_to_PredictedResults_table", out1, jsonList)
+                conn.commit()
         cur.close()
         conn.close()
     

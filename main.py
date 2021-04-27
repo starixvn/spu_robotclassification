@@ -5,6 +5,7 @@ from database_interaction import DB_Interaction
 from configuration.system_config import SystemConfig
 from prediction_controller import PredictionController
 import time
+
 ENV = 'LOCAL'
 config = SystemConfig(ENV.lower() + '_' + "config.ini", ENV)
 
@@ -12,16 +13,16 @@ if __name__=='__main__':
 
     start = time.time()
     category_mapping = Utilities.read_data(config.category_mapping_folder, config.category_mapping_file_name)
-    cat_map = Utilities.transform_category_mapping(category_mapping)
+    str_to_id, id_to_str = Utilities.transform_category_mapping(category_mapping)
     print("transform_category_mapping %.2f seconds" % (time.time() - start))
 
     start = time.time()
     data = Utilities.read_data(config.train_data_folder, config.train_data_file_name)
-    data = Utilities.preprocess_data(data, cat_map)
+    data = Utilities.preprocess_data(data, str_to_id)
     print("read_data & preprocess_data %.2f seconds" % (time.time() - start))
 
     start = time.time()
-    features_df = DataTransformer.transform(data)
+    features_df = DataTransformer.transform(data, id_to_str)
     print("transform",(time.time() - start))
 
     Utilities.save_data(config.transformed_data_folder, config.transformed_data_file_name, features_df)
@@ -29,7 +30,8 @@ if __name__=='__main__':
 
     start = time.time()
     train_data = Utilities.read_data(config.transformed_data_folder, config.transformed_data_file_name)
-    training_results_full_info_list, cat_cus_couple_dataframe = TrainingModelController.train_model(train_data, cat_map, config.day_threshold, config.split_history_present)
+    print("train_data\n", train_data.head())
+    training_results_full_info_list, cat_cus_couple_dataframe = TrainingModelController.train_model(train_data, str_to_id, config.day_threshold, config.split_history_present)
     print("train_model %.2f seconds" % (time.time() - start))
 
     start = time.time()
@@ -45,7 +47,7 @@ if __name__=='__main__':
 
     PredictionController.make_predictions_right_after_training_phase((cat_cus_couple_dataframe, config, test_data.ReportDate.min()))
 
-    test_data = Utilities.preprocess_data(test_data, cat_map)
+    test_data = Utilities.preprocess_data(test_data, str_to_id)
 
     print("AFTER PREPROCESS | test_data\n", test_data.head())
 

@@ -12,6 +12,7 @@ from scipy.stats.distributions import norm
 from datetime import date
 from database_interaction import DB_Interaction
 from prediction_controller import PredictionController
+from data_transformer import DataTransformer
 ENV = 'LOCAL'
 config = SystemConfig(ENV.lower() + '_' + "config.ini", ENV)
 
@@ -45,8 +46,13 @@ if __name__=='__main__':
     # df = pd.DataFrame(db_results[0], columns=['CustId', 'CategoryId', 'Mode', 'A', 'B', 'Streak', 'Active_days'])
     # print(df)
     # data = Utilities.read_data(config.test_data_folder, config.test_data_file_name)
-    data = pd.read_csv(config.test_data_folder + config.test_data_file_name, index_col=0)
-    print("data\n", data.head())
-    data.to_csv(config.test_data_folder + config.test_data_file_name, index=False)
-    data = pd.read_csv(config.test_data_folder + config.test_data_file_name)
-    print("data\n", data.head())
+    # category_mapping = Utilities.read_data(config.category_mapping_folder, config.category_mapping_file_name)
+    # str_to_id = Utilities.transform_category_mapping(category_mapping)
+    # print("transform_category_mapping %.2f seconds" % (time.time() - start))
+
+    data = [{"C":123, "CAT":1, "WL":-3, "TO":25}, {"C":123, "CAT":1, "WL":56, "TO":12}, {"C":123, "CAT":2, "WL":11, "TO":5}, {"C":456, "CAT":7, "WL":-32, "TO":205}]
+    data = pd.DataFrame(data)
+    print("BEFORE | data\n", data)
+    # new = data.groupby(['C', 'CAT'])['WL', 'TO'].sum().reset_index()
+    new = data.groupby(['C', 'CAT']).sum().reset_index()
+    print("AFTER | new\n", new)
