@@ -1,12 +1,13 @@
 import numpy as np
+import pandas as pd
 from utils import Utilities
-from model import GB_classify
+from model import Model
 
 class TrainingModelController():
 
     def build_prior(history):
         m, l = len(history[history>0]), len(history[history<0])
-        cus = GB_classify(m, l)
+        cus = Model(m, l)
         return cus
 
     def build_posterior(cus, present):
@@ -42,11 +43,11 @@ class TrainingModelController():
         mode = cus.get_mode()
         return mode, cus.a, cus.b, streak, num_effective_days
 
-    def create_full_info_training_results(category, cat_df, categoryID, threshold_activ_days = 4, split = 0):
+    def create_full_info_training_results(category, cat_df, categoryID, cat_cus_couple_list, threshold_activ_days = 4, split = 0):
         """
         Compute mode and standard deviation for each customer with a given dataset
 
-        >>> Input   :   category             , string
+        >>> Input   :   category              , string
                         cat_df                , dataframe of a certain category
                         threshold_activ_days  , integer that reflects the minimal number of days to filter
                         split                 , float that reflects how much percent of array used to establish prior
@@ -70,16 +71,18 @@ class TrainingModelController():
             # round 2 filter
             if len(filtered_margin_array) >= threshold_activ_days :
                 mode, a, b, streak, num_active_days = TrainingModelController.process_a_margin_array(filtered_margin_array, split = split)
-                training_results_daily_info_list.append({'C':custid, 'M':mode, 'SWD':a, 'SLD':b, 'STR':streak, 'CAT':categoryID})
-        return training_results_daily_info_list
+                training_results_daily_info_list.append({'C':custid, 'M':mode, 'SWD':a, 'SLD':b, 'STR':streak, 'CAT':categoryID, 'AD':num_active_days})
+                cat_cus_couple_list.append({"CAT":categoryID, "C":custid})
+        return training_results_daily_info_list, cat_cus_couple_list
 
-    def train_model(preprocessed_train_data, cat_map):
+    def train_model(preprocessed_train_data, cat_map, day_threshold, split_history_present):
         training_results_full_info_list = []
+        cat_cus_couple_list = []
         categories = cat_map.keys()
         for category in categories:
             cat_df = Utilities.filter_categorie(category, preprocessed_train_data)
             # print("cat_df\n", cat_df)
             categoryID = cat_map[category]['CategoryID']
-            training_results_daily_info_list = TrainingModelController.create_full_info_training_results(category, cat_df, categoryID)
+            training_results_daily_info_list, cat_cus_couple_list = TrainingModelController.create_full_info_training_results(category, cat_df, categoryID, cat_cus_couple_list, day_threshold, split_history_present)
             training_results_full_info_list += training_results_daily_info_list
-        return training_results_full_info_list
+        return training_results_full_info_list, pd.DataFrame(cat_cus_couple_list)

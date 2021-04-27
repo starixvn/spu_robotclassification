@@ -3,10 +3,24 @@ from datetime import date
 
 class Utilities():
 
-    def read_data(location, file_name, index_col = None):
-            return pd.read_csv(location + file_name, index_col = index_col)
+    def read_data(location, file_name):
+        
+        try:
+            data =  pd.read_csv(location + file_name, skiprows = [1])
+            # print("data with winlostdate col\n", data.head())
+            max_train_date = data.winlostdate.max()
+            data.rename(columns = {"winlostdate":"ReportDate",
+                                    "custid":"CustId",
+                                    "sporttype":"SporttypeId",
+                                    "bettype":"BettypeId"}, inplace = True)
+        except Exception as e:
+            print(type(e).__name__)
+            data =  pd.read_csv(location + file_name)
+        # finally:
+        return data
     
     def save_data(location, file_name, dataframe):
+        # if type(file) == pd.core.DataFrane
         dataframe.to_csv(location + file_name)
 
     def filter_categorie(categorie, dataframe):
@@ -30,9 +44,9 @@ class Utilities():
                         delta_b     , a float number
         """
         if margin > 0:
-            return amplitude*margin*streak,0
+            return amplitude*margin*abs(streak), 0
         else:
-            return 0,amplitude*abs(margin)*streak
+            return 0, amplitude*abs(margin)*abs(streak)
 
     def is_weekend(a_given_date):
         """
@@ -58,14 +72,17 @@ class Utilities():
     def transform_bet_type(x):
         return 'b' + str(x)
 
-    def preprocess_data(data):
+    def preprocess_data(data, cat_map):
         data = data[data.BettypeId.isin([1, 3, 7, 8])]
         yourdata = data[['ReportDate', 'CustId', 'IBCWinloss', 'IBCTurnover', 'BetCount']]
+        yourdata.rename(columns = {'CustId':'C'}, inplace = True)
         mydata = pd.DataFrame()
         mydata['IsLive'] = data['IsLive'].apply(lambda x : 'L' if x else 'NL') # mydata['IsLive']
         mydata['SporttypeId'] = data['SporttypeId'].apply(Utilities.transform_sport_type) # mydata['SporttypeId']
         mydata['BettypeId'] = data['BettypeId'].apply(Utilities.transform_bet_type) # mydata['BettypeId']
         mydata['Day'] = data['ReportDate'].apply(Utilities.is_weekend) # mydata['Day']
+        mydata['Category_in_short'] = mydata['SporttypeId'] + mydata['BettypeId'] + mydata['IsLive'] + mydata['Day']
+        mydata['CAT'] = mydata['Category_in_short'].apply(lambda z : cat_map[z]['CategoryID'])
     
         return pd.merge(yourdata, mydata, right_index = True, left_index = True)
 
@@ -77,7 +94,6 @@ class Utilities():
         mydata['BettypeId'] = data['BettypeID'].apply(Utilities.transform_bet_type) # mydata['BettypeId'
         mydata['Day'] = data['IsWeekend'].apply(lambda z : 'WE' if z else 'WD')
         mydata['Category_in_short'] = mydata['SportID'] + mydata['BettypeId'] + mydata['IsLive'] + mydata['Day']
-        # print("mydata\n", mydata)
         mydata = mydata[['Category_in_short']].reset_index().set_index('Category_in_short')
         # print("mydata\n", mydata)
         cat_map = mydata.to_dict(orient = 'index')

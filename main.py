@@ -4,7 +4,6 @@ from data_transformer import DataTransformer
 from database_interaction import DB_Interaction
 from configuration.system_config import SystemConfig
 from prediction_controller import PredictionController
-
 import time
 ENV = 'LOCAL'
 config = SystemConfig(ENV.lower() + '_' + "config.ini", ENV)
@@ -15,29 +14,39 @@ if __name__=='__main__':
     category_mapping = Utilities.read_data(config.category_mapping_folder, config.category_mapping_file_name)
     cat_map = Utilities.transform_category_mapping(category_mapping)
     print("transform_category_mapping %.2f seconds" % (time.time() - start))
-    # start = time.time()
-    # data = Utilities.read_data(config.raw_data_folder, config.raw_data_file_name)
-    # data = Utilities.preprocess_data(data)
-    # print("read_data & preprocess_data",(time.time() - start))
-    # start = time.time()
-    # features_df = DataTransformer.transform(data)
-    # print("transform",(time.time() - start))
-    # Utilities.save_data(config.transformed_data_folder, config.transformed_data_file_name, features_df)
-    # print("save_data",(time.time() - start))
+
     start = time.time()
-    train_data = Utilities.read_data(config.transformed_data_folder, config.transformed_data_file_name, index_col = 0)
-    training_results_full_info_list = TrainingModelController.train_model(train_data, cat_map)
+    data = Utilities.read_data(config.train_data_folder, config.train_data_file_name)
+    data = Utilities.preprocess_data(data, cat_map)
+    print("read_data & preprocess_data %.2f seconds" % (time.time() - start))
+
+    start = time.time()
+    features_df = DataTransformer.transform(data)
+    print("transform",(time.time() - start))
+
+    Utilities.save_data(config.transformed_data_folder, config.transformed_data_file_name, features_df)
+    print("save_data",(time.time() - start))
+
+    start = time.time()
+    train_data = Utilities.read_data(config.transformed_data_folder, config.transformed_data_file_name)
+    training_results_full_info_list, cat_cus_couple_dataframe = TrainingModelController.train_model(train_data, cat_map, config.day_threshold, config.split_history_present)
     print("train_model %.2f seconds" % (time.time() - start))
+
     start = time.time()
-    DB_Interaction.insert_to_TrainingResults_table((training_results_full_info_list, config, "2021-04-22"))
+    DB_Interaction.insert_to_TrainingResults_table(training_results_full_info_list, data.ReportDate.max(), config)
     print("insert_to_TrainingResults_table %.2f seconds" % (time.time() - start))
 
-    # training_results_data = DB_Interaction.get_from_TrainingResults_table()
+    Utilities.save_data(config.cus_cat_couple_list_folder, config.cus_cat_couple_list_file_name, cat_cus_couple_dataframe)
 
-    # test_data = Utilities.read_data()
+    cat_cus_couple_dataframe = Utilities.read_data(config.cus_cat_couple_list_folder, config.cus_cat_couple_list_file_name)
+    print("cat_cus_couple_dataframe\n", cat_cus_couple_dataframe.head())
 
-    # predictable_full_info_list, update_only_full_info_list = PredictionController(training_results_data, test_data, cat_map)
+    test_data = Utilities.read_data(config.test_data_folder, config.test_data_file_name)
 
-    # DB_Interaction.insert_to_PredictedResults_table(predictable_full_info_list)
+    PredictionController.make_predictions_right_after_training_phase((cat_cus_couple_dataframe, config, test_data.ReportDate.min()))
 
-    # DB_Interaction.insert_to_TrainingResults_table(update_only_full_info_list)
+    test_data = Utilities.preprocess_data(test_data, cat_map)
+
+    print("AFTER PREPROCESS | test_data\n", test_data.head())
+
+    PredictionController.execute(test_data, config)

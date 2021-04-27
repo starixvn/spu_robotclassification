@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from math import gamma
 
-class GB_classify():
+class Model():
     def __init__(self, init_num_win, init_num_lose,a = 2, 
                 b = 2, points = 101, width = 15 ,height = 5):
         self.init_num_win = init_num_win
@@ -57,7 +57,10 @@ class GB_classify():
         plt.show()
 
     def get_mode(self):
-        return (self.A-1) / (self.C-2)
+        try :
+            return (self.A-1) / (self.C-2)
+        except ZeroDivisionError:
+            print(self.a, self.b)
 
     def get_std(self):
         return np.sqrt( (self.A)*(self.B) / (self.C)**2 / (self.C+1) )

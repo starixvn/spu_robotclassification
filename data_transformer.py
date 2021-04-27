@@ -60,7 +60,7 @@ class DataTransformer():
         daily_stats_cus_based = {}
         example_df = dataframe[dataframe.ReportDate == example_day]
         for row in example_df.itertuples():
-            custid = row.CustId
+            custid = row.C
             category = row.SporttypeId + row.BettypeId + row.IsLive + row.Day
             if custid not in daily_stats_cus_based:
                 daily_stats_cus_based[custid] = {} 
@@ -129,7 +129,7 @@ class DataTransformer():
 
     def transform(dataframe):
         active_days = dataframe.ReportDate.unique()
-        customer_list = dataframe.CustId.unique()
+        customer_list = dataframe.C.unique()
         customers_dict = DataTransformer.build_outline_of_customer_dict(customer_list)
         for active_day in tqdm(active_days, desc = 'Preprocessing...'):
 
