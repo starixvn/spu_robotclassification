@@ -1,12 +1,13 @@
 from scipy.stats import shapiro
 from scipy.stats.distributions import norm
-from utils import Utilities
-from model import Model
-from database_interaction import DB_Interaction
+from Helper.utils import Utilities
+from Model.distribution_model import DistributionModel
+from DataAccess.database_interaction import DB_Interaction
 from tqdm import tqdm
 import pandas as pd
 import warnings
 warnings.filterwarnings("ignore")
+
 class PredictionController():
 
     def check_Gaussian_distribution(data, config):
@@ -30,7 +31,7 @@ class PredictionController():
         delta_a, delta_b = Utilities.compute_deltas(streak, today_margin)
         updated_a = a + delta_a
         updated_b = b + delta_b
-        classifier = Model(0, 0, updated_a, updated_b)
+        classifier = DistributionModel(0, 0, updated_a, updated_b)
         updated_mode = classifier.get_mode()
         if today_margin == 0:
             return updated_mode, a,b, streak

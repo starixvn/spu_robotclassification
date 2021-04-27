@@ -1,13 +1,13 @@
 import numpy as np
 import pandas as pd
-from utils import Utilities
-from model import Model
+from Helper.utils import Utilities
+from Model.distribution_model import DistributionModel
 
 class TrainingModelController():
 
     def build_prior(history):
         m, l = len(history[history>0]), len(history[history<0])
-        cus = Model(m, l)
+        cus = DistributionModel(m, l)
         return cus
 
     def build_posterior(cus, present):

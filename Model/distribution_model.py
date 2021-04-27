@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from math import gamma
 
-class Model():
+class DistributionModel():
     def __init__(self, init_num_win, init_num_lose,a = 2, 
                 b = 2, points = 101, width = 15 ,height = 5):
         self.init_num_win = init_num_win
