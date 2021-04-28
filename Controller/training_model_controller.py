@@ -10,22 +10,22 @@ class TrainingModelController():
         cus = DistributionModel(m, l)
         return cus
 
-    def build_posterior(cus, present):
+    def build_posterior(cus, present, amplitude):
         streak = 1
-        delta_a, delta_b = Utilities.compute_deltas(present[0], streak)
+        delta_a, delta_b = Utilities.compute_deltas(present[0], streak, amplitude)
         cus.update_hyper_params(delta_a,delta_b)
         for day in range(1, len(present)):
             if present[day]*present[day-1] > 0:
                 streak += 1
-                delta_a,delta_b = Utilities.compute_deltas(present[day], streak)
+                delta_a,delta_b = Utilities.compute_deltas(present[day], streak, amplitude)
                 cus.update_hyper_params(delta_a, delta_b)
             else:
                 streak = 1
-                delta_a, delta_b = Utilities.compute_deltas(present[day] ,streak)
+                delta_a, delta_b = Utilities.compute_deltas(present[day] ,streak, amplitude)
                 cus.update_hyper_params(delta_a, delta_b)
         return cus, streak
 
-    def process_a_margin_array(margin_array, split = 0):
+    def process_a_margin_array(margin_array, split, amplitude):
         """
         Process profile for a single customer
         Also apply winning/losing streak !
@@ -39,11 +39,11 @@ class TrainingModelController():
         split_point = int(np.floor(split*num_effective_days))
         history, present = margin_array[:split_point], margin_array[split_point:]
         cus = TrainingModelController.build_prior(history)
-        cus, streak = TrainingModelController.build_posterior(cus, present)
+        cus, streak = TrainingModelController.build_posterior(cus, present, amplitude)
         mode = cus.get_mode()
         return mode, cus.a, cus.b, streak, num_effective_days
 
-    def create_full_info_training_results(category, cat_df, categoryID, cat_cus_couple_list, threshold_activ_days = 4, split = 0):
+    def create_full_info_training_results(category, cat_df, categoryID, cat_cus_couple_list, threshold_activ_days, split, amplitude):
         """
         Compute mode and standard deviation for each customer with a given dataset
 
@@ -71,12 +71,12 @@ class TrainingModelController():
 
             # round 2 filter
             if len(filtered_margin_array) >= threshold_activ_days :
-                mode, a, b, streak, num_active_days = TrainingModelController.process_a_margin_array(filtered_margin_array, split = split)
+                mode, a, b, streak, num_active_days = TrainingModelController.process_a_margin_array(filtered_margin_array, split, amplitude)
                 training_results_daily_info_list.append({'C':custid, 'M':mode, 'SWD':a, 'SLD':b, 'STR':streak, 'CAT':categoryID, 'AD':num_active_days})
                 cat_cus_couple_list.append({"CAT":categoryID, "C":custid})
         return training_results_daily_info_list, cat_cus_couple_list
 
-    def train_model(transformed_train_data, str_to_id, day_threshold, split_history_present):
+    def train_model(transformed_train_data, str_to_id, day_threshold, split_history_present, amplitude):
         training_results_full_info_list = []
         cat_cus_couple_list = []
         categories = str_to_id.keys()
@@ -86,6 +86,6 @@ class TrainingModelController():
             cat_df = Utilities.filter_categorie(category, transformed_train_data)
             # print("cat_df\n", cat_df.head())
             categoryID = str_to_id[category]['CategoryID']
-            training_results_daily_info_list, cat_cus_couple_list = TrainingModelController.create_full_info_training_results(category, cat_df, categoryID, cat_cus_couple_list, day_threshold, split_history_present)
+            training_results_daily_info_list, cat_cus_couple_list = TrainingModelController.create_full_info_training_results(category, cat_df, categoryID, cat_cus_couple_list, day_threshold, split_history_present, amplitude)
             training_results_full_info_list += training_results_daily_info_list
         return training_results_full_info_list, pd.DataFrame(cat_cus_couple_list)

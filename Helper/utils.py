@@ -6,13 +6,16 @@ class Utilities():
     def read_data(location, file_name):
         
         try:
-            data =  pd.read_csv(location + file_name, skiprows = [1])
+            data =  pd.read_csv(location + file_name)
             # print("data with winlostdate col\n", data.head())
             max_train_date = data.winlostdate.max()
             data.rename(columns = {"winlostdate":"ReportDate",
                                     "custid":"CustId",
                                     "sporttype":"SporttypeId",
-                                    "bettype":"BettypeId"}, inplace = True)
+                                    "bettype":"BettypeId",
+                                    "liveindicator":"IsLive"}, inplace = True)
+            data['ReportDate'] = data['ReportDate'].apply(lambda z : z.split(' ')[0])
+            print("data\n", data.head())
         except AttributeError:
             # print(type(e).__name__)
             data =  pd.read_csv(location + file_name)
@@ -38,7 +41,7 @@ class Utilities():
         filtered_cat_df = cat_df.dropna()
         return filtered_cat_df
 
-    def compute_deltas(margin, streak, amplitude=10.):
+    def compute_deltas(margin, streak, amplitude):
         """
         >>> Input   :   margin      , a float number in range[-1,1]
                         streak      , an integer
@@ -77,6 +80,7 @@ class Utilities():
     def preprocess_data(data, str_to_id):
         data = data[data.BettypeId.isin([1, 3, 7, 8])]
         yourdata = data[['ReportDate', 'CustId', 'IBCWinloss', 'IBCTurnover', 'BetCount']]
+        yourdata['IBCWinloss'] = - yourdata['IBCWinloss']
         yourdata.rename(columns = {'CustId':'C'}, inplace = True)
         mydata = pd.DataFrame()
         mydata['IsLive'] = data['IsLive'].apply(lambda x : 'L' if x else 'NL') # mydata['IsLive']

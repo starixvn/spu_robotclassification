@@ -12,6 +12,10 @@ class SystemConfig(object):
         self.ENV = args[1]
 
         # define paths
+        self.save_dir_log = self.getDataStrConfig(
+            self.config, 'DEFAULT', 'SAVE_DIR_LOG')
+        self.log_name = self.getDataStrConfig(
+            self.config, 'DEFAULT', 'LOG_NAME')
         self.train_data_folder = self.getDataStrConfig(
             self.config, 'DEFAULT', 'TRAIN_DATA_FOLDER')
         self.train_data_file_name = self.getDataStrConfig(
@@ -52,10 +56,16 @@ class SystemConfig(object):
             self.config, 'ROBOTCONFIG', 'DAY_THRESHOLD'))
         self.split_history_present = int(self.getDataStrConfig(
             self.config, 'ROBOTCONFIG', 'SPLIT_HISTORY_PRESENT'))
+        self.amplitude = int(self.getDataStrConfig(
+            self.config, 'ROBOTCONFIG', 'AMPLITUDE'))
         self.default_mean = float(self.getDataStrConfig(
             self.config, 'ROBOTCONFIG', 'DEFAULT_MEAN'))
         self.default_std = float(self.getDataStrConfig(
             self.config, 'ROBOTCONFIG', 'DEFAULT_STD'))
+        
+        # define if a telegramm message is sent
+        self.agree_to_send_message = self.getDataBooleanConfig(
+            self.config, 'ACTION_TELEGRAM', 'AGREE_TO_SEND_MESSAGE')
         # define is transfer data to CTS
         # self.transfer_score = self.getDataBooleanConfig(
         #     self.config, 'ACTION_CTS', 'TRANSFER_DATASCORE')

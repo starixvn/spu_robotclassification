@@ -103,6 +103,9 @@ class DataTransformer():
         for customer, cats in daily_stats_cus_based.items():
             bc_total = sum([cats[cat] for cat in cats.keys() if cat.endswith('BC')])
             to_total = sum([cats[cat] for cat in cats.keys() if cat.endswith('TO')])
+            if to_total == 0:
+                print("to_total == 0 : customer {0}, cats {1}".format(customer, cats))
+                continue
             for cat,value in cats.items():
                 customers_dict[customer][cat[:-2] + '_num_active_days'] += 1/3    
                 if cat.endswith('BC'):

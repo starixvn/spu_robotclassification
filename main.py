@@ -1,54 +1,29 @@
-from utils import Utilities
-from training_model_controller import TrainingModelController
-from data_transformer import DataTransformer
-from database_interaction import DB_Interaction
-from configuration.system_config import SystemConfig
-from prediction_controller import PredictionController
-import time
-
-ENV = 'LOCAL'
-config = SystemConfig(ENV.lower() + '_' + "config.ini", ENV)
+from RobotClassificationManagement.robot_classification_manager import RobotClassificationManager
 
 if __name__=='__main__':
 
-    start = time.time()
-    category_mapping = Utilities.read_data(config.category_mapping_folder, config.category_mapping_file_name)
-    str_to_id, id_to_str = Utilities.transform_category_mapping(category_mapping)
-    print("transform_category_mapping %.2f seconds" % (time.time() - start))
+    start_running = RobotClassificationManager.start()
 
-    start = time.time()
-    data = Utilities.read_data(config.train_data_folder, config.train_data_file_name)
-    data = Utilities.preprocess_data(data, str_to_id)
-    print("read_data & preprocess_data %.2f seconds" % (time.time() - start))
+    str_to_id, id_to_str = RobotClassificationManager.transform_category_mapping()
 
-    start = time.time()
-    features_df = DataTransformer.transform(data, id_to_str)
-    print("transform",(time.time() - start))
+    data, end_training_date = RobotClassificationManager.read_and_preprocess_data(str_to_id, is_training = 1)
 
-    Utilities.save_data(config.transformed_data_folder, config.transformed_data_file_name, features_df)
-    print("save_data",(time.time() - start))
+    features_df = RobotClassificationManager.transform_data(data, id_to_str)
 
-    start = time.time()
-    train_data = Utilities.read_data(config.transformed_data_folder, config.transformed_data_file_name)
-    print("train_data\n", train_data.head())
-    training_results_full_info_list, cat_cus_couple_dataframe = TrainingModelController.train_model(train_data, str_to_id, config.day_threshold, config.split_history_present)
-    print("train_model %.2f seconds" % (time.time() - start))
+    RobotClassificationManager.save_transformed_data(features_df)
 
-    start = time.time()
-    DB_Interaction.insert_to_TrainingResults_table(training_results_full_info_list, data.ReportDate.max(), config)
-    print("insert_to_TrainingResults_table %.2f seconds" % (time.time() - start))
+    train_data = RobotClassificationManager.read_transformed_data()
 
-    Utilities.save_data(config.cus_cat_couple_list_folder, config.cus_cat_couple_list_file_name, cat_cus_couple_dataframe)
+    training_results_full_info_list, cat_cus_couple_dataframe = RobotClassificationManager.train_model(train_data, str_to_id)
 
-    cat_cus_couple_dataframe = Utilities.read_data(config.cus_cat_couple_list_folder, config.cus_cat_couple_list_file_name)
-    print("cat_cus_couple_dataframe\n", cat_cus_couple_dataframe.head())
+    RobotClassificationManager.insert_to_TrainResult_Table(training_results_full_info_list, end_training_date)
 
-    test_data = Utilities.read_data(config.test_data_folder, config.test_data_file_name)
+    RobotClassificationManager.save_cat_cus_couple_dataframe(cat_cus_couple_dataframe)
 
-    PredictionController.make_predictions_right_after_training_phase((cat_cus_couple_dataframe, config, test_data.ReportDate.min()))
+    cat_cus_couple_dataframe = RobotClassificationManager.read_cat_cus_couple_dataframe()
 
-    test_data = Utilities.preprocess_data(test_data, str_to_id)
+    test_data, start_predict_date = RobotClassificationManager.read_and_preprocess_data(str_to_id, is_training = 0)
 
-    print("AFTER PREPROCESS | test_data\n", test_data.head())
+    RobotClassificationManager.make_predictions_right_after_training_phase(cat_cus_couple_dataframe, start_predict_date)
 
-    PredictionController.execute(test_data, config)
+    RobotClassificationManager.make_predictions_from_test_data(test_data, start_running)

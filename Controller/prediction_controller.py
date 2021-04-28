@@ -27,8 +27,8 @@ class PredictionController():
             win_lose_guess = 0
         return win_lose_guess
     
-    def update_training_results_for_a_singleton(a, b, streak, today_margin):
-        delta_a, delta_b = Utilities.compute_deltas(streak, today_margin)
+    def update_training_results_for_a_singleton(a, b, streak, today_margin, amplitude):
+        delta_a, delta_b = Utilities.compute_deltas(streak, today_margin, amplitude)
         updated_a = a + delta_a
         updated_b = b + delta_b
         classifier = DistributionModel(0, 0, updated_a, updated_b)
@@ -68,7 +68,7 @@ class PredictionController():
         else:
             return (0,0)
 
-    def process_prediction_phase(collection_of_boundaries, concat_df):
+    def process_prediction_phase(collection_of_boundaries, concat_df, amplitude):
         concat_df['Today_Margin'] = concat_df['IBCWinloss']/concat_df['IBCTurnover']
         mydf = pd.DataFrame()
         mydf['C'] = concat_df['C']
@@ -77,7 +77,7 @@ class PredictionController():
         concat_df['temp_output1'] = concat_df.apply(lambda z : PredictionController.validate_predictable_mode(z['M'], z['CAT'], collection_of_boundaries), axis = 1)
         mydf['IP'] = concat_df['temp_output1'].apply(lambda z : z[0])
         mydf['IPW'] = concat_df['temp_output1'].apply(lambda z : z[1])
-        concat_df['temp_output2'] = concat_df.apply(lambda z : PredictionController.update_training_results_for_a_singleton(z['SWD'], z['SLD'], z['STR'], z['Today_Margin']), axis = 1)
+        concat_df['temp_output2'] = concat_df.apply(lambda z : PredictionController.update_training_results_for_a_singleton(z['SWD'], z['SLD'], z['STR'], z['Today_Margin'], amplitude), axis = 1)
         mydf['M'] = concat_df['temp_output2'].apply(lambda z : z[0])
         mydf['SWD'] = concat_df['temp_output2'].apply(lambda z : z[1])
         mydf['SLD'] = concat_df['temp_output2'].apply(lambda z : z[2])
@@ -86,8 +86,8 @@ class PredictionController():
         # print("mydf\n", mydf)
         return mydf
 
-    def make_predictions_right_after_training_phase(args):
-        cat_cus_couple_dataframe, config, day = args
+    def make_predictions_right_after_training_phase(cat_cus_couple_dataframe, config, day):
+        # cat_cus_couple_dataframe, config, day = args
         history_training_results_data = DB_Interaction.get_from_TrainingResults_table(cat_cus_couple_dataframe, config)
         # print("BEFORE | history_training_results_data\n", history_training_results_data.head())
         collection_of_boundaries, history_training_results_data = PredictionController.validate_training_results(history_training_results_data, config)
@@ -114,7 +114,7 @@ class PredictionController():
                 continue
             concat_df = daily_test_data.merge(daily_training_results_data, how = 'inner', left_on = ['C', 'CAT'], right_on = ['C', 'CAT'])
             collection_of_boundaries, concat_df = PredictionController.validate_training_results(concat_df, config)
-            mydf = PredictionController.process_prediction_phase(collection_of_boundaries, concat_df)
+            mydf = PredictionController.process_prediction_phase(collection_of_boundaries, concat_df, config.amplitude)
             # print("mydf\n", mydf.head())
             # has_duplicate = mydf.duplicated()
             # duplicates = mydf[has_duplicate]

@@ -1,8 +1,9 @@
 # String = "1,3,8"
 # Lyst = String.split(',')
 # print('Lyst\n',Lyst)
-
-from utils import Utilities
+import sys
+sys.path.append("C:/Users/diego.nguyen/diegoProj/RobotClassification")
+from Helper.utils import Utilities
 import pandas as pd
 import json
 from configuration.system_config import SystemConfig
@@ -10,9 +11,10 @@ from mysql.connector import MySQLConnection
 from scipy.stats import shapiro
 from scipy.stats.distributions import norm
 from datetime import date
-from database_interaction import DB_Interaction
-from prediction_controller import PredictionController
-from data_transformer import DataTransformer
+from DataAccess.database_interaction import DB_Interaction
+from Controller.prediction_controller import PredictionController
+from Helper.data_transformer import DataTransformer
+from Helper.notify import Telegram_send_message
 ENV = 'LOCAL'
 config = SystemConfig(ENV.lower() + '_' + "config.ini", ENV)
 
@@ -50,9 +52,17 @@ if __name__=='__main__':
     # str_to_id = Utilities.transform_category_mapping(category_mapping)
     # print("transform_category_mapping %.2f seconds" % (time.time() - start))
 
-    data = [{"C":123, "CAT":1, "WL":-3, "TO":25}, {"C":123, "CAT":1, "WL":56, "TO":12}, {"C":123, "CAT":2, "WL":11, "TO":5}, {"C":456, "CAT":7, "WL":-32, "TO":205}]
-    data = pd.DataFrame(data)
-    print("BEFORE | data\n", data)
-    # new = data.groupby(['C', 'CAT'])['WL', 'TO'].sum().reset_index()
-    new = data.groupby(['C', 'CAT']).sum().reset_index()
-    print("AFTER | new\n", new)
+    # data = [{"C":123, "CAT":1, "WL":-3, "TO":25}, {"C":123, "CAT":1, "WL":56, "TO":12}, {"C":123, "CAT":2, "WL":11, "TO":5}, {"C":456, "CAT":7, "WL":-32, "TO":205}]
+    # data = pd.DataFrame(data)
+    # print("BEFORE | data\n", data)
+    # # new = data.groupby(['C', 'CAT'])['WL', 'TO'].sum().reset_index()
+    # new = data.groupby(['C', 'CAT']).sum().reset_index()
+    # print("AFTER | new\n", new)
+    try:
+        a = 1/0
+        message_telegram = "That's fine !"
+    except Exception as e:
+        message_telegram = '%s : %s' % (type(e).__name__, e)
+        # raise ValueError
+    # Telegram_send_message(message_telegram)
+    print(message_telegram)
