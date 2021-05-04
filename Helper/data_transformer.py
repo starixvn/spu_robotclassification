@@ -1,6 +1,3 @@
-# from unicodedata import category
-# from utils import Utilities
-# from training_model_controller import DataTransformer
 from scipy import stats
 import pandas as pd
 from tqdm import tqdm
@@ -14,6 +11,7 @@ days = ['WD','WE']
 
 class DataTransformer():
 
+    @staticmethod
     def build_outline_of_customer_dict(customer_list):
         """
         Build a customer-based dictionary to update scores during processing
@@ -44,6 +42,7 @@ class DataTransformer():
                                             customers_dict[customer][sport+bet+live+day+cat+'_'+kind] = 0
         return customers_dict
 
+    @staticmethod
     def generate_daily_stats_customer_based(dataframe, example_day, id_to_str):
         """
         For a single day, build a dictionary whose parent keys are customers
@@ -70,6 +69,7 @@ class DataTransformer():
             daily_stats_cus_based[custid][category + 'WL'] = row.IBCWinloss
         return daily_stats_cus_based
     
+    @staticmethod
     def generate_daily_stats_category_based(daily_stats_cus_based):
         """
         Build a dictionary whose parent keys are categories
@@ -99,12 +99,13 @@ class DataTransformer():
                     daily_stats_cat_based[attribute][cus] = value
         return daily_stats_cat_based
 
+    @staticmethod
     def compute_internal_score(daily_stats_cus_based, customers_dict):
         for customer, cats in daily_stats_cus_based.items():
             bc_total = sum([cats[cat] for cat in cats.keys() if cat.endswith('BC')])
             to_total = sum([cats[cat] for cat in cats.keys() if cat.endswith('TO')])
             if to_total == 0:
-                print("to_total == 0 : customer {0}, cats {1}".format(customer, cats))
+                # print("to_total == 0 : customer {0}, cats {1}".format(customer, cats))
                 continue
             for cat,value in cats.items():
                 customers_dict[customer][cat[:-2] + '_num_active_days'] += 1/3    
@@ -119,6 +120,7 @@ class DataTransformer():
                     customers_dict[customer][cat + '_sequence'] += ','+str(value)
         return customers_dict
     
+    @staticmethod
     def compute_outstanding_score(daily_stats_cat_based, customers_dict):
         for attribute,cus in daily_stats_cat_based.items():  
             for customer,value in cus.items():
@@ -131,6 +133,7 @@ class DataTransformer():
                     customers_dict[customer][attribute+'_out'] += stats.percentileofscore(stat_of_turnover_in_a_day, value)/100
         return customers_dict
 
+    @staticmethod
     def transform(dataframe, id_to_str):
         active_days = dataframe.ReportDate.unique()
         customer_list = dataframe.C.unique()
@@ -148,6 +151,6 @@ class DataTransformer():
         features_df = pd.DataFrame(customers_dict.values(), index = customers_dict.keys())
         features_df.index.name = 'C'
         features_df = features_df.reset_index()
-        print('Features\n',features_df.head(5))
+        # print('Features\n',features_df.head(5))
         return features_df
         

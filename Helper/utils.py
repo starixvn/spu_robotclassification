@@ -3,6 +3,7 @@ from datetime import date
 
 class Utilities():
 
+    @staticmethod
     def read_data(location, file_name):
         
         try:
@@ -15,18 +16,17 @@ class Utilities():
                                     "bettype":"BettypeId",
                                     "liveindicator":"IsLive"}, inplace = True)
             data['ReportDate'] = data['ReportDate'].apply(lambda z : z.split(' ')[0])
-            print("data\n", data.head())
+            # print("data\n", data.head())
         except AttributeError:
             # print(type(e).__name__)
             data =  pd.read_csv(location + file_name)
-        # finally:
         return data
     
+    @staticmethod
     def save_data(location, file_name, dataframe):
-        # if type(file) == pd.core.DataFrane
         dataframe.to_csv(location + file_name, index = False)
-        # dataframe.to_csv(location + file_name)
 
+    @staticmethod
     def filter_categorie(categorie, dataframe):
         """
         >>> Input   :   categorie   : string | represents combination sport-bettype-liveIndicator-whichDay
@@ -34,13 +34,13 @@ class Utilities():
         >>> Output  :   filtered pandas.DataFrame
         """
         cols = [col for col in dataframe.columns.to_list() if categorie in col]
-        # cols = cols + ['C']
         cat_df = dataframe[cols]
 
         # filter non-play customers
         filtered_cat_df = cat_df.dropna()
         return filtered_cat_df
 
+    @staticmethod
     def compute_deltas(margin, streak, amplitude):
         """
         >>> Input   :   margin      , a float number in range[-1,1]
@@ -53,6 +53,7 @@ class Utilities():
         else:
             return 0, amplitude*abs(margin)*abs(streak)
 
+    @staticmethod
     def is_weekend(a_given_date):
         """
         Simply check a given date is if it is weekend
@@ -69,14 +70,18 @@ class Utilities():
         else:
             return 'WD'
     
+    @staticmethod
     def transform_sport_type(x):
         if (x-1)*(x-2) == 0:
             return 's' + str(x)
         else:
             return 'other'
+    
+    @staticmethod
     def transform_bet_type(x):
         return 'b' + str(x)
 
+    @staticmethod
     def preprocess_data(data, str_to_id):
         data = data[data.BettypeId.isin([1, 3, 7, 8])]
         yourdata = data[['ReportDate', 'CustId', 'IBCWinloss', 'IBCTurnover', 'BetCount']]
@@ -96,6 +101,7 @@ class Utilities():
     
         return new
 
+    @staticmethod
     def transform_category_mapping(data):
         data = data.set_index('CategoryID')
         mydata = pd.DataFrame()

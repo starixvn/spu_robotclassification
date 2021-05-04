@@ -15,9 +15,16 @@ from DataAccess.database_interaction import DB_Interaction
 from Controller.prediction_controller import PredictionController
 from Helper.data_transformer import DataTransformer
 from Helper.notify import Telegram_send_message
+import random
+import numpy as np
 ENV = 'LOCAL'
-config = SystemConfig(ENV.lower() + '_' + "config.ini", ENV)
-
+systemConfig = SystemConfig(ENV.lower() + '_' + "config.ini", ENV)
+def print_key(key):
+    try:
+        # print(mydict[key])
+        a = 1/0
+    except ZeroDivisionError:
+        return None
 if __name__=='__main__':
     # print("config\n", config.aimldb)
     # conn = MySQLConnection(user = config.aimluser, password = config.aimlpwd,
@@ -58,11 +65,32 @@ if __name__=='__main__':
     # # new = data.groupby(['C', 'CAT'])['WL', 'TO'].sum().reset_index()
     # new = data.groupby(['C', 'CAT']).sum().reset_index()
     # print("AFTER | new\n", new)
-    try:
-        a = 1/0
-        message_telegram = "That's fine !"
-    except Exception as e:
-        message_telegram = '%s : %s' % (type(e).__name__, e)
-        # raise ValueError
-    # Telegram_send_message(message_telegram)
-    print(message_telegram)
+    # try:
+    #     a = 1/0
+    #     message_telegram = "That's fine !"
+    # except Exception as e:
+    #     message_telegram = '%s : %s' % (type(e).__name__, e)
+    #     # raise ValueError
+    # # Telegram_send_message(message_telegram)
+    # print(message_telegram)
+    # print("random", random.random())
+    # mydict = {'a':1, 'b':2}
+    # print_key('c')
+    # print('escape')
+    # print("floor", np.floor(.2))
+    # a = print_key('c')
+    # if a is None:
+    #     print('a is None')
+    # data = Utilities.read_data(systemConfig.test_data_folder, systemConfig.test_data_file_name)
+    # category_mapping = Utilities.read_data(systemConfig.category_mapping_folder, systemConfig.category_mapping_file_name)
+    # str_to_id, id_to_str = Utilities.transform_category_mapping(category_mapping)
+    # data = Utilities.preprocess_data(data, str_to_id)
+    # data['margin'] = data['IBCWinloss']/data['IBCTurnover']
+    # print(data['margin'].isna().sum())
+    ls = [{'C':None, 'CAT':3, 'S':.6}, {'C':2, 'CAT':4, 'S':None}]
+    df = pd.DataFrame(ls)
+    df = df.dropna()
+    a = df.to_dict(orient='records')
+    b = [1,2]
+    b += a
+    print("b\n", b)

@@ -9,8 +9,8 @@ class DistributionModel():
         self.init_num_lose = init_num_lose
         self.a = a
         self.b = b
-        self.A = self.init_num_win+self.a
-        self.B = self.init_num_lose+self.b
+        self.A = self.init_num_win + self.a
+        self.B = self.init_num_lose + self.b
         self.C = self.A + self.B
         self.points = points
         self.muy_arr = np.linspace(0, 1, self.points)
@@ -28,8 +28,8 @@ class DistributionModel():
     def update_hyper_params(self, delta_a, delta_b):
         self.obser_win = delta_a
         self.obser_lose = delta_b
-        self.a += self.obser_win
-        self.b += self.obser_lose
+        self.a = self.a + self.obser_win
+        self.b = self.b + self.obser_lose
         self.A = self.init_num_win+self.a
         self.B = self.init_num_lose+self.b
         self.C = self.A + self.B
@@ -61,6 +61,7 @@ class DistributionModel():
             return (self.A-1) / (self.C-2)
         except ZeroDivisionError:
             print(self.a, self.b)
+            return None
 
     def get_std(self):
         return np.sqrt( (self.A)*(self.B) / (self.C)**2 / (self.C+1) )

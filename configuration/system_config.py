@@ -1,7 +1,6 @@
 import configparser
 import os
 
-
 class SystemConfig(object):
     """description of class"""
     def __init__(self, *args, **kwargs):
@@ -52,16 +51,21 @@ class SystemConfig(object):
         # define Robot config
         self.chunk_size = int(self.getDataStrConfig(
             self.config, 'ROBOTCONFIG', 'CHUNK_SIZE'))
-        self.day_threshold = int(self.getDataStrConfig(
-            self.config, 'ROBOTCONFIG', 'DAY_THRESHOLD'))
-        self.split_history_present = int(self.getDataStrConfig(
-            self.config, 'ROBOTCONFIG', 'SPLIT_HISTORY_PRESENT'))
-        self.amplitude = int(self.getDataStrConfig(
-            self.config, 'ROBOTCONFIG', 'AMPLITUDE'))
-        self.default_mean = float(self.getDataStrConfig(
-            self.config, 'ROBOTCONFIG', 'DEFAULT_MEAN'))
-        self.default_std = float(self.getDataStrConfig(
-            self.config, 'ROBOTCONFIG', 'DEFAULT_STD'))
+        # self.day_threshold = int(self.getDataStrConfig(
+        #     self.config, 'ROBOTCONFIG', 'DAY_THRESHOLD'))
+        # self.day_threshold = random.randint(1,20)
+        # self.split_history_present = float(self.getDataStrConfig(
+        #     self.config, 'ROBOTCONFIG', 'SPLIT_HISTORY_PRESENT'))
+        # self.split_history_present = random.random()
+        # self.amplitude = int(self.getDataStrConfig(
+        #     self.config, 'ROBOTCONFIG', 'AMPLITUDE'))
+        # self.amplitude = random.randint(1,10)
+        # self.default_mean = float(self.getDataStrConfig(
+        #     self.config, 'ROBOTCONFIG', 'DEFAULT_MEAN'))
+        # self.default_mean = random.random()
+        # self.default_std = float(self.getDataStrConfig(
+        #     self.config, 'ROBOTCONFIG', 'DEFAULT_STD'))
+        # self.default_std = .5*random.random()
         
         # define if a telegramm message is sent
         self.agree_to_send_message = self.getDataBooleanConfig(
