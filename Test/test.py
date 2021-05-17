@@ -20,8 +20,13 @@ from Helper.notify import Telegram_send_message
 from tqdm import tqdm
 from RobotClassificationManagement.robot_classification_manager import RobotClassificationManager
 ENV = 'LOCAL'
-config = SystemConfig(ENV.lower() + '_' + "config.ini", ENV)
-
+systemConfig = SystemConfig(ENV.lower() + '_' + "config.ini", ENV)
+def print_key(key):
+    try:
+        # print(mydict[key])
+        a = 1/0
+    except ZeroDivisionError:
+        return None
 if __name__=='__main__':
     # df = Utilities.read_data(config.category_mapping_folder, config.day_eliminated_category_mapping_file_name)
     # print(df)

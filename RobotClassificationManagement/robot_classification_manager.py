@@ -4,6 +4,7 @@ from Helper.data_transformer import DataTransformer
 from Controller.training_model_controller import TrainingModelController
 from Controller.prediction_controller import PredictionController
 from configuration.system_config import SystemConfig
+from configuration.robot_config import RobotConfig
 from DataAccess.database_interaction import DB_Interaction
 from Helper.notify import Telegram_send_message
 import logging
@@ -114,6 +115,7 @@ class RobotClassificationManager():
                 Telegram_send_message(message)
             raise ValueError
     
+    @staticmethod
     def save_transformed_data(features_df):
         try:
             start = time.time()
@@ -129,6 +131,7 @@ class RobotClassificationManager():
                 Telegram_send_message(message)
             raise ValueError
     
+    @staticmethod
     def read_transformed_data():
         try:
             start = time.time()
@@ -161,6 +164,7 @@ class RobotClassificationManager():
             raise ValueError
         return training_results_full_info_list, cat_cus_couple_dataframe
     
+    @staticmethod
     def insert_to_TrainResult_Table(training_results_full_info_list, end_training_date):
         try:
             start = time.time()
@@ -176,6 +180,7 @@ class RobotClassificationManager():
                 Telegram_send_message(message)
             raise ValueError
     
+    @staticmethod
     def save_cat_cus_couple_dataframe(cat_cus_couple_dataframe):
         try:
             start = time.time()
@@ -191,6 +196,7 @@ class RobotClassificationManager():
                 Telegram_send_message(message)
             raise ValueError
     
+    @staticmethod
     def read_cat_cus_couple_dataframe():
         try:
             start = time.time()
@@ -223,6 +229,7 @@ class RobotClassificationManager():
             if agree_to_send_message:
                 Telegram_send_message(message)
             raise ValueError
+        # return output
     
     def get_answer_from_test_data(preprocessed_test_data, start_running, PID, test_date, prediction_results):
         try:

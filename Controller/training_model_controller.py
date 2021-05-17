@@ -5,11 +5,13 @@ from Model.distribution_model import DistributionModel
 
 class TrainingModelController():
 
+    @staticmethod
     def build_prior(history):
         m, l = len(history[history>0]), len(history[history<0])
         cus = DistributionModel(m, l)
         return cus
 
+    @staticmethod
     def build_posterior(cus, present, amplitude):
 
         if present[0] > 0:
@@ -33,6 +35,7 @@ class TrainingModelController():
                 cus.update_hyper_params(delta_a, delta_b)
         return cus, streak
 
+    @staticmethod
     def process_a_margin_array(margin_array, split, amplitude):
         """
         Process profile for a single customer

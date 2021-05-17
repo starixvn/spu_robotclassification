@@ -1,7 +1,6 @@
 import configparser
 import os
 
-
 class SystemConfig(object):
     """description of class"""
     def __init__(self, *args, **kwargs):

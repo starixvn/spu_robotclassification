@@ -37,12 +37,15 @@ class PredictionController():
         if today_margin == 0:
             return updated_mode, a,b, streak
         else:
-            updated_streak = today_margin / abs(today_margin)
-            if streak*today_margin > 0:
-                updated_streak = streak + updated_streak
-            return updated_mode, updated_a, updated_b, updated_streak
+            try:
+                updated_streak = int(today_margin / abs(today_margin))
+                if streak*today_margin > 0:
+                    updated_streak = streak + updated_streak
+                return updated_mode, updated_a, updated_b, updated_streak
+            except ValueError:
+                print("today_margin", today_margin)
 
-    def validate_training_results(concat_df, config):
+    def validate_training_results(concat_df, robotConfig):
         collection_of_boundaries = {}
         remove_list = []
         cat_list = concat_df.CAT.to_list()
@@ -51,7 +54,7 @@ class PredictionController():
             if len(df.index) <= 3:
                 remove_list.append(cat_id)
                 continue
-            mean, std = PredictionController.check_Gaussian_distribution(df['M'], config)
+            mean, std = PredictionController.check_Gaussian_distribution(df['M'], robotConfig)
             upper_bound = mean + std
             lower_bound = mean - std
             collection_of_boundaries[cat_id] = {"upper_bound":upper_bound, "lower_bound":lower_bound}

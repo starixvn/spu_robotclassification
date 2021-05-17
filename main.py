@@ -1,5 +1,6 @@
 from RobotClassificationManagement.robot_classification_manager import RobotClassificationManager
-
+from tqdm import tqdm
+import time
 if __name__=='__main__':
 
     land_marks = ["2021-04-" + str(x).zfill(2) for x in range(1, 17, 15)]
