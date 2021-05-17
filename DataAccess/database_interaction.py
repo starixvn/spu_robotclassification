@@ -17,7 +17,7 @@ class DB_Interaction():
                 # print("jsonList\n", jsonList)
                 _,_, out1 = cur.callproc("SPU_AIML_InsertTrainResults", [jsonList, date_insert, None])
                 if out1 is not None:
-                    print(out1)
+                    print(out1, jsonList)
                 conn.commit()
         else:
             for chunk in chunks:
@@ -30,7 +30,7 @@ class DB_Interaction():
         cur.close()
         conn.close()
 
-    def get_from_TrainingResults_table(test_data, config):
+    def get_from_TrainingResults_table(test_data, config, PID):
         # test_data, config = args
         mydata = test_data[['C', 'CAT']]
         # print("mydata\n", mydata.head())
@@ -42,7 +42,7 @@ class DB_Interaction():
         conn = MySQLConnection(user = config.aimluser, password = config.aimlpwd,
                                 host = config.aimlhost, port = config.aimlport, database = config.aimldb)
         cur = conn.cursor()
-        _, out1 = cur.callproc("SPU_AIML_GetTrainResults", [jsonList, None])
+        _,_, out1 = cur.callproc("SPU_AIML_GetTrainResults", [jsonList, PID, None])
         if out1 is not None:
             print(out1)
         db_results = [r.fetchall() for r in cur.stored_results()]
@@ -78,5 +78,12 @@ class DB_Interaction():
         cur.close()
         conn.close()
     
-    def insert_to_PredictionAccuracy_table():
-        pass
+    def truncate_TrainResults_table(config):
+        conn = MySQLConnection(user = config.aimluser, password = config.aimlpwd,
+                                host = config.aimlhost, port = config.aimlport, database = config.aimldb)
+        cur = conn.cursor()
+
+        cur.callproc("SPU_AIML.SPU_AIML_DBA_Truncate_Table", ["TrainResults"])
+        conn.commit()
+        cur.close()
+        conn.close()

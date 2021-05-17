@@ -1,13 +1,19 @@
 import pandas as pd
 from datetime import date
-
+import os
+from tqdm import tqdm
 class Utilities():
 
-    def read_data(location, file_name):
+    def read_data(location, file_name, is_entire = 1, length_of_assessment = None, start_date = None):
         
         try:
-            data =  pd.read_csv(location + file_name)
-            # print("data with winlostdate col\n", data.head())
+            if is_entire:
+                data =  pd.read_csv(location + file_name)
+            else:
+                list_files = sorted(os.listdir(location))
+                start_file_index = list_files.index(start_date + ".csv")
+                list_target_files = list_files[start_file_index:start_file_index + length_of_assessment]
+                data = pd.concat([pd.read_csv(location + fn) for fn in tqdm(list_target_files, desc = "Concat Files")], ignore_index = True)
             max_train_date = data.winlostdate.max()
             data.rename(columns = {"winlostdate":"ReportDate",
                                     "custid":"CustId",
@@ -17,15 +23,12 @@ class Utilities():
             data['ReportDate'] = data['ReportDate'].apply(lambda z : z.split(' ')[0])
             print("data\n", data.head())
         except AttributeError:
-            # print(type(e).__name__)
             data =  pd.read_csv(location + file_name)
-        # finally:
         return data
     
     def save_data(location, file_name, dataframe):
-        # if type(file) == pd.core.DataFrane
+
         dataframe.to_csv(location + file_name, index = False)
-        # dataframe.to_csv(location + file_name)
 
     def filter_categorie(categorie, dataframe):
         """
@@ -76,34 +79,50 @@ class Utilities():
             return 'other'
     def transform_bet_type(x):
         return 'b' + str(x)
-
-    def preprocess_data(data, str_to_id):
+        
+    def preprocess_data(data, str_to_id, is_aggregated = 0, dead_line = None, min_bet_count = 10, is_day_eliminated = 0):
         data = data[data.BettypeId.isin([1, 3, 7, 8])]
         yourdata = data[['ReportDate', 'CustId', 'IBCWinloss', 'IBCTurnover', 'BetCount']]
-        yourdata['IBCWinloss'] = - yourdata['IBCWinloss']
+        yourdata['UserWinloss'] = - yourdata['IBCWinloss']
         yourdata.rename(columns = {'CustId':'C'}, inplace = True)
         mydata = pd.DataFrame()
         mydata['IsLive'] = data['IsLive'].apply(lambda x : 'L' if x else 'NL') # mydata['IsLive']
         mydata['SporttypeId'] = data['SporttypeId'].apply(Utilities.transform_sport_type) # mydata['SporttypeId']
         mydata['BettypeId'] = data['BettypeId'].apply(Utilities.transform_bet_type) # mydata['BettypeId']
-        mydata['Day'] = data['ReportDate'].apply(Utilities.is_weekend) # mydata['Day']
-        mydata['Category_in_short'] = mydata['SporttypeId'] + mydata['BettypeId'] + mydata['IsLive'] + mydata['Day']
+        if not is_day_eliminated:
+            mydata['Day'] = data['ReportDate'].apply(Utilities.is_weekend) # mydata['Day']
+            mydata['Category_in_short'] = mydata['SporttypeId'] + mydata['BettypeId'] + mydata['IsLive'] + mydata['Day']
+        else:
+            mydata['Category_in_short'] = mydata['SporttypeId'] + mydata['BettypeId'] + mydata['IsLive']
         mydata['CAT'] = mydata['Category_in_short'].apply(lambda z : str_to_id[z]['CategoryID'])
 
         old = pd.merge(yourdata, mydata, right_index = True, left_index = True)
-
-        new = old.groupby(['C', 'CAT', 'ReportDate']).sum().reset_index()
+        if is_aggregated:
+            new = old.groupby(['C', 'CAT']).sum().reset_index()
+            new['ReportDate'] = dead_line
+            # new = new[new.UserWinloss != 0]
+            new = new[(new.UserWinloss != 0) & (new.BetCount >= min_bet_count)]
+            new.to_csv("D:/Project/Robot/TEST_DATA/agg_test.csv", index=False)
+        else:
+            
+            new = old.groupby(['C', 'CAT', 'ReportDate']).sum().reset_index()
+            new = new[(new.UserWinloss != 0) & (new.BetCount >= min_bet_count)]
+            # new = new[new.UserWinloss != 0]
+            new.to_csv("D:/Project/Robot/TEST_DATA/preprocessed.csv", index=False)
     
         return new
 
-    def transform_category_mapping(data):
+    def transform_category_mapping(data, is_day_eliminated = 0):
         data = data.set_index('CategoryID')
         mydata = pd.DataFrame()
         mydata['IsLive'] = data['IsLive'].apply(lambda x : 'L' if x else 'NL') # mydata['IsLive']
         mydata['SportID'] = data['SportID'].apply(Utilities.transform_sport_type) # mydata['SporttypeId']
         mydata['BettypeId'] = data['BettypeID'].apply(Utilities.transform_bet_type) # mydata['BettypeId'
-        mydata['Day'] = data['IsWeekend'].apply(lambda z : 'WE' if z else 'WD')
-        mydata['Category_in_short'] = mydata['SportID'] + mydata['BettypeId'] + mydata['IsLive'] + mydata['Day']
+        if not is_day_eliminated:
+            mydata['Day'] = data['IsWeekend'].apply(lambda z : 'WE' if z else 'WD')
+            mydata['Category_in_short'] = mydata['SportID'] + mydata['BettypeId'] + mydata['IsLive'] + mydata['Day']
+        else:
+            mydata['Category_in_short'] = mydata['SportID'] + mydata['BettypeId'] + mydata['IsLive']
         mydata1 = mydata[['Category_in_short']].reset_index().set_index('Category_in_short')
         # print("mydata\n", mydata)
         mydata2 = mydata[['Category_in_short']]

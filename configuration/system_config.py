@@ -18,8 +18,12 @@ class SystemConfig(object):
             self.config, 'DEFAULT', 'LOG_NAME')
         self.train_data_folder = self.getDataStrConfig(
             self.config, 'DEFAULT', 'TRAIN_DATA_FOLDER')
+        self.train_data_folder_with_breaking_files = self.getDataStrConfig(
+            self.config, 'DEFAULT', 'TRAIN_DATA_FOLDER_WITH_BREAKING_FILES')
         self.train_data_file_name = self.getDataStrConfig(
             self.config, 'DEFAULT', 'TRAIN_DATA_FILE_NAME')
+        self.test_data_folder_with_breaking_files = self.getDataStrConfig(
+            self.config, 'DEFAULT', 'TEST_DATA_FOLDER_WITH_BREAKING_FILES')
         self.test_data_folder = self.getDataStrConfig(
             self.config, 'DEFAULT', 'TEST_DATA_FOLDER')
         self.test_data_file_name = self.getDataStrConfig(
@@ -32,6 +36,8 @@ class SystemConfig(object):
             self.config, 'DEFAULT', 'CATEGORY_MAPPING_FOLDER')
         self.category_mapping_file_name = self.getDataStrConfig(
             self.config, 'DEFAULT', 'CATEGORY_MAPPING_FILE_NAME')
+        self.day_eliminated_category_mapping_file_name = self.getDataStrConfig(
+            self.config, 'DEFAULT', 'DAY_ELIMINATED_CATEGORY_MAPPING_FILE_NAME')
         self.cus_cat_couple_list_folder = self.getDataStrConfig(
             self.config, 'DEFAULT', 'CUS_CAT_COUPLE_LIST_FOLDER')
         self.cus_cat_couple_list_file_name = self.getDataStrConfig(
@@ -62,6 +68,16 @@ class SystemConfig(object):
             self.config, 'ROBOTCONFIG', 'DEFAULT_MEAN'))
         self.default_std = float(self.getDataStrConfig(
             self.config, 'ROBOTCONFIG', 'DEFAULT_STD'))
+        self.test_dead_line = self.getDataStrConfig(
+            self.config, 'ROBOTCONFIG', 'TEST_DEAD_LINE')
+        self.min_bet_count_training = int(self.getDataStrConfig(
+            self.config, 'ROBOTCONFIG', 'MIN_BET_COUNT_TRAINING'))
+        self.min_bet_count_testing = int(self.getDataStrConfig(
+            self.config, 'ROBOTCONFIG', 'MIN_BET_COUNT_TESTING'))
+        self.length_of_training = int(self.getDataStrConfig(
+            self.config, 'ROBOTCONFIG', 'LENGTH_OF_TRAINING'))
+        self.length_of_testing = int(self.getDataStrConfig(
+            self.config, 'ROBOTCONFIG', 'LENGTH_OF_TESTING'))
         
         # define if a telegramm message is sent
         self.agree_to_send_message = self.getDataBooleanConfig(
