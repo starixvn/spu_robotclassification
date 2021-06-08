@@ -21,7 +21,8 @@ class Utilities():
                                     "bettype":"BettypeId",
                                     "liveindicator":"IsLive"}, inplace = True)
             data['ReportDate'] = data['ReportDate'].apply(lambda z : z.split(' ')[0])
-            # print("data\n", data.head())
+            print("HEAD of data\n", data.head())
+            print("TAIL of data\n", data.tail())
         except AttributeError:
             data =  pd.read_csv(location + file_name)
         return data
@@ -39,23 +40,28 @@ class Utilities():
         """
         cols = [col for col in dataframe.columns.to_list() if categorie in col]
         cat_df = dataframe[cols]
-
+        # print("cat_df\n", cat_df.sample(5))
+        # cat_df.to_csv(f"D:/Project/Robot/TRANSFORMED_DATA/{categorie}.csv", index = False)
         # filter non-play customers
-        filtered_cat_df = cat_df.dropna()
+        filtered_cat_df = cat_df.dropna(how = "all")
+        assert len(filtered_cat_df.index) > 0
         return filtered_cat_df
 
     @staticmethod
-    def compute_deltas(margin, streak, amplitude):
+    def compute_deltas(margin, outstanding_TO_score, outstanding_BC_score, streak, amplitude):
         """
         >>> Input   :   margin      , a float number in range[-1,1]
                         streak      , an integer
         >>> Output  :   delta_a     , a float number
                         delta_b     , a float number
         """
+        if abs(margin) > 1:
+            margin = int(margin/abs(margin))
         if margin > 0:
-            return amplitude*margin*abs(streak), 0
+            # return amplitude*margin*(1 + outstanding_TO_score*abs(streak)), 0 
+            return amplitude*(margin+2*outstanding_TO_score)/3*(1 + (streak - 1)/10), 0
         else:
-            return 0, amplitude*abs(margin)*abs(streak)
+            return 0, amplitude*(abs(margin)+2*outstanding_TO_score)/3*(1 + (abs(streak) - 1)/10) 
 
     @staticmethod
     def is_weekend(a_given_date):
@@ -84,50 +90,101 @@ class Utilities():
     @staticmethod
     def transform_bet_type(x):
         return 'b' + str(x)
+
+    @staticmethod
+    def aggregate(df, winloss_sign, phase):
+        marginalization = df.groupby(['C', 'CAT']).sum().reset_index()
+        day_count = df.groupby(['C', 'CAT'])["IBCWinloss"].count().reset_index()
+        target_cols = ["UserWinloss", "IBCTurnover", "BetCount"]
+        marginalization = marginalization.rename(columns = {key:phase + winloss_sign + key for key in target_cols})
+        day_count = day_count.rename(columns = {"IBCWinloss":phase + winloss_sign + "ActiveDays"})
+                                                    
+        merger = marginalization.merge(day_count, how = "inner", right_on = ["C", "CAT"], left_on = ["C", "CAT"])
+        return merger
         
-    def preprocess_data(data, str_to_id, is_aggregated = 0, dead_line = None, min_bet_count = 10, is_day_eliminated = 0):
+    def preprocess_data(data, str_to_id, is_training, is_aggregated = 0, dead_line = None, min_bet_count = 10, 
+                        is_day_eliminated = 0, is_live_indicator_eliminated = 0, is_bettype_eliminated = 0):
+        if is_training:
+            phase = "Training"
+        else:
+            phase = "Testing"
         data = data[data.BettypeId.isin([1, 3, 7, 8])]
         yourdata = data[['ReportDate', 'CustId', 'IBCWinloss', 'IBCTurnover', 'BetCount']]
         yourdata['UserWinloss'] = - yourdata['IBCWinloss']
         yourdata.rename(columns = {'CustId':'C'}, inplace = True)
         mydata = pd.DataFrame()
-        mydata['IsLive'] = data['IsLive'].apply(lambda x : 'L' if x else 'NL') # mydata['IsLive']
         mydata['SporttypeId'] = data['SporttypeId'].apply(Utilities.transform_sport_type) # mydata['SporttypeId']
-        mydata['BettypeId'] = data['BettypeId'].apply(Utilities.transform_bet_type) # mydata['BettypeId']
-        if not is_day_eliminated:
+        
+        if is_day_eliminated and is_live_indicator_eliminated and is_bettype_eliminated:
+            mydata['Category_in_short'] = mydata['SporttypeId']
+        elif is_day_eliminated and is_live_indicator_eliminated:
+            mydata['BettypeId'] = data['BettypeId'].apply(Utilities.transform_bet_type) # mydata['BettypeId']
+            mydata['Category_in_short'] = mydata['SporttypeId'] + mydata['BettypeId']
+        elif is_day_eliminated:
+            mydata['BettypeId'] = data['BettypeId'].apply(Utilities.transform_bet_type) # mydata['BettypeId']
+            mydata['IsLive'] = data['IsLive'].apply(lambda x : 'L' if x else 'NL') # mydata['IsLive']
+            mydata['Category_in_short'] = mydata['SporttypeId'] + mydata['BettypeId'] + mydata['IsLive']
+        else:
+            mydata['BettypeId'] = data['BettypeId'].apply(Utilities.transform_bet_type) # mydata['BettypeId']
+            mydata['IsLive'] = data['IsLive'].apply(lambda x : 'L' if x else 'NL') # mydata['IsLive']
             mydata['Day'] = data['ReportDate'].apply(Utilities.is_weekend) # mydata['Day']
             mydata['Category_in_short'] = mydata['SporttypeId'] + mydata['BettypeId'] + mydata['IsLive'] + mydata['Day']
-        else:
-            mydata['Category_in_short'] = mydata['SporttypeId'] + mydata['BettypeId'] + mydata['IsLive']
         mydata['CAT'] = mydata['Category_in_short'].apply(lambda z : str_to_id[z]['CategoryID'])
 
-        old = pd.merge(yourdata, mydata, right_index = True, left_index = True)
+        merged = pd.merge(yourdata, mydata, right_index = True, left_index = True)
         if is_aggregated:
-            new = old.groupby(['C', 'CAT']).sum().reset_index()
-            new['ReportDate'] = dead_line
-            # new = new[new.UserWinloss != 0]
-            new = new[(new.UserWinloss != 0) & (new.BetCount >= min_bet_count)]
-            new.to_csv("D:/Project/Robot/TEST_DATA/agg_test.csv", index=False)
+            # index_reseted = merged.groupby(['C', 'CAT']).sum().reset_index()
+            
+            positive_winloss = merged[merged.UserWinloss > 0]
+            positive_merger = Utilities.aggregate(positive_winloss, winloss_sign = "Positive", phase = phase)            
+            print("positive_merger\n", positive_merger.head())
+            negative_winloss = merged[merged.UserWinloss < 0]
+            negative_merger = Utilities.aggregate(negative_winloss, winloss_sign = "Negative", phase = phase)
+            print("negative_merger\n", negative_merger.head())
+            the_finalized = positive_merger.merge(negative_merger, how = "outer", on = ["C", "CAT"])
+            the_finalized['ReportDate'] = dead_line
+            the_finalized = the_finalized.fillna(0)
+            the_finalized[phase + "ActiveDays"] = the_finalized[phase + "NegativeActiveDays"] + \
+                                                    the_finalized[phase + "PositiveActiveDays"]
+            the_finalized[phase + "TurnOver"] = the_finalized[phase + "NegativeIBCTurnover"] + \
+                                                the_finalized[phase + "PositiveIBCTurnover"]
+            the_finalized[phase + "UserWinloss"] = the_finalized[phase + "NegativeUserWinloss"] + \
+                                                    the_finalized[phase + "PositiveUserWinloss"]
+            the_finalized[phase + "BetCount"] = the_finalized[phase + "NegativeBetCount"] + \
+                                                the_finalized[phase + "PositiveBetCount"]
+            print("the_finalized\n", the_finalized.head())
+            # print("NegativeWinlossActiveDays = " + str(the_finalized.NegativeWinlossActiveDays.unique()))
+            print(phase + "ActiveDays = " + str(the_finalized[phase + "ActiveDays"].unique()))
+            # index_reseted = index_reseted[(index_reseted.UserWinloss != 0) & (index_reseted.BetCount >= min_bet_count)]
+            the_finalized.to_csv(f"D:/Project/Robot/TEST_DATA/agg_{phase}.csv", index=False)
         else:
             
-            new = old.groupby(['C', 'CAT', 'ReportDate']).sum().reset_index()
-            new = new[(new.UserWinloss != 0) & (new.BetCount >= min_bet_count)]
-            # new = new[new.UserWinloss != 0]
-            new.to_csv("D:/Project/Robot/TEST_DATA/preprocessed.csv", index=False)
-    
-        return new
+            the_finalized = merged.groupby(['C', 'CAT', 'ReportDate']).sum().reset_index()
+            the_finalized = the_finalized[(the_finalized.UserWinloss != 0) & (the_finalized.BetCount >= min_bet_count)]
+            # the_finalized = the_finalized[the_finalized.UserWinloss != 0]
+            the_finalized.to_csv("D:/Project/Robot/TEST_DATA/preprocessed_test.csv", index = False)
+            # the_finalized = the_finalized[(the_finalized.C == 13515302) & (the_finalized.CAT == 2)]
+            # print("TAIL of the_finalized\n", the_finalized.tail(10))
+        return the_finalized
 
-    def transform_category_mapping(data, is_day_eliminated = 0):
+    def transform_category_mapping(data, is_day_eliminated = 0, is_live_indicator_eliminated = 0, is_bettype_eliminated = 0):
         data = data.set_index('CategoryID')
         mydata = pd.DataFrame()
-        mydata['IsLive'] = data['IsLive'].apply(lambda x : 'L' if x else 'NL') # mydata['IsLive']
         mydata['SportID'] = data['SportID'].apply(Utilities.transform_sport_type) # mydata['SporttypeId']
-        mydata['BettypeId'] = data['BettypeID'].apply(Utilities.transform_bet_type) # mydata['BettypeId'
-        if not is_day_eliminated:
-            mydata['Day'] = data['IsWeekend'].apply(lambda z : 'WE' if z else 'WD')
-            mydata['Category_in_short'] = mydata['SportID'] + mydata['BettypeId'] + mydata['IsLive'] + mydata['Day']
+        if is_day_eliminated and is_live_indicator_eliminated and is_bettype_eliminated:
+            mydata['Category_in_short'] = mydata['SportID']
+        elif is_day_eliminated and is_live_indicator_eliminated:
+            mydata['BettypeID'] = data['BettypeID'].apply(Utilities.transform_bet_type) # mydata['BettypeId'
+            mydata['Category_in_short'] = mydata['SportID'] + mydata['BettypeID']
+        elif is_day_eliminated:
+            mydata['BettypeID'] = data['BettypeID'].apply(Utilities.transform_bet_type) # mydata['BettypeId'
+            mydata['IsLive'] = data['IsLive'].apply(lambda x : 'L' if x else 'NL') # mydata['IsLive']
+            mydata['Category_in_short'] = mydata['SportID'] + mydata['BettypeID'] + mydata['IsLive']
         else:
-            mydata['Category_in_short'] = mydata['SportID'] + mydata['BettypeId'] + mydata['IsLive']
+            mydata['BettypeID'] = data['BettypeID'].apply(Utilities.transform_bet_type) # mydata['BettypeId'
+            mydata['IsLive'] = data['IsLive'].apply(lambda x : 'L' if x else 'NL') # mydata['IsLive']
+            mydata['Day'] = data['IsWeekend'].apply(lambda x : "WE" if x else "WD") # mydata['Day']
+            mydata['Category_in_short'] = mydata['SportID'] + mydata['BettypeID'] + mydata['IsLive'] + mydata['Day']
         mydata1 = mydata[['Category_in_short']].reset_index().set_index('Category_in_short')
         # print("mydata\n", mydata)
         mydata2 = mydata[['Category_in_short']]

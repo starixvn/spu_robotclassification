@@ -42,14 +42,18 @@ class RobotClassificationManager():
             raise ValueError
         
     
-    def transform_category_mapping(is_day_eliminated = 0):
+    def transform_category_mapping(is_day_eliminated = 0, is_live_indicator_eliminated = 0, is_bettype_eliminated = 0):
         # try:
             start = time.time()
-            if is_day_eliminated:
+            if is_day_eliminated and is_live_indicator_eliminated and is_bettype_eliminated:
+                category_mapping = Utilities.read_data(config.category_mapping_folder, config.vs_sport_only_category_mapping_file_name)
+            elif is_day_eliminated and is_live_indicator_eliminated:
+                category_mapping = Utilities.read_data(config.category_mapping_folder, config.day_and_live_indicator_eliminated_category_mapping_file_name)
+            elif is_day_eliminated:
                 category_mapping = Utilities.read_data(config.category_mapping_folder, config.day_eliminated_category_mapping_file_name)
             else:
                 category_mapping = Utilities.read_data(config.category_mapping_folder, config.category_mapping_file_name)
-            str_to_id, id_to_str = Utilities.transform_category_mapping(category_mapping, is_day_eliminated)
+            str_to_id, id_to_str = Utilities.transform_category_mapping(category_mapping, is_day_eliminated, is_live_indicator_eliminated, is_bettype_eliminated)
             message = "%s | transform_category_mapping %.2f seconds" % (ENV, time.time() - start)
             print(message)
             logging.info(message)
@@ -62,30 +66,36 @@ class RobotClassificationManager():
         #         Telegram_send_message(message)
         #     raise ValueError
     
-    def read_and_preprocess_data(str_to_id, is_training, is_entire = 1, start_date = None, is_aggregated = 0, is_day_eliminated = 0):
+    def read_and_preprocess_data(str_to_id, is_training, is_entire = 1, start_date = None, is_aggregated = 0, 
+                                is_day_eliminated = 0, is_live_indicator_eliminated = 0, is_bettype_eliminated = 0):
         try:
             start = time.time()
             if is_training:
                 if is_entire:
-                    data = Utilities.read_data(config.train_data_folder, config.train_data_file_name, is_entire, config.length_of_training, start_date)
+                    data = Utilities.read_data(config.train_data_folder, config.train_data_file_name, is_entire, 
+                                                config.length_of_training, start_date)
                 else:
-                    data = Utilities.read_data(config.train_data_folder_with_breaking_files, config.train_data_file_name, is_entire, config.length_of_training, start_date)
-                bench_mark_date = data.ReportDate.max()      
-                data = Utilities.preprocess_data(data, str_to_id, min_bet_count = config.min_bet_count_training, is_day_eliminated = is_day_eliminated) 
-                print("Train data\n", data.tail())       
+                    data = Utilities.read_data(config.train_data_folder_with_breaking_files, config.train_data_file_name, is_entire, 
+                                                config.length_of_training, start_date)
+                dead_line = data.ReportDate.max()
+                bench_mark_date = data.ReportDate.max()        
             else:
                 if is_entire:
-                    data = Utilities.read_data(config.test_data_folder, config.test_data_file_name, is_entire, config.length_of_testing, start_date)
+                    data = Utilities.read_data(config.test_data_folder, config.test_data_file_name, is_entire, 
+                                                config.length_of_testing, start_date)
                 else:
-                    data = Utilities.read_data(config.test_data_folder_with_breaking_files, config.test_data_file_name, is_entire, config.length_of_testing, start_date)
-                test_dead_line = data.ReportDate.max()
+                    data = Utilities.read_data(config.test_data_folder_with_breaking_files, config.test_data_file_name, is_entire, 
+                                                config.length_of_testing, start_date)
+                dead_line = data.ReportDate.max()
                 # data = data[data.ReportDate <= test_dead_line]
                 bench_mark_date = data.ReportDate.min()
-                if is_aggregated:
-                    data = Utilities.preprocess_data(data, str_to_id, is_aggregated, dead_line = test_dead_line, min_bet_count = config.min_bet_count_testing, is_day_eliminated = is_day_eliminated)
-                else:
-                    data = Utilities.preprocess_data(data, str_to_id, min_bet_count = config.min_bet_count_testing, is_day_eliminated = is_day_eliminated)
-                print("Test data\n", data.tail()) 
+            data = Utilities.preprocess_data(data, str_to_id, is_training = is_training,
+                                            is_aggregated = is_aggregated, 
+                                            dead_line = dead_line,
+                                            min_bet_count = config.min_bet_count_training, 
+                                            is_day_eliminated = is_day_eliminated, 
+                                            is_live_indicator_eliminated = is_live_indicator_eliminated, 
+                                            is_bettype_eliminated = is_bettype_eliminated)   
             message = "%s | read_and_preprocess_training_data %.2f seconds" % (ENV, time.time() - start)
             print(message)
             logging.info(message)
@@ -136,6 +146,7 @@ class RobotClassificationManager():
         try:
             start = time.time()
             train_data = Utilities.read_data(config.transformed_data_folder, config.transformed_data_file_name)
+            print("Transformed data\n", train_data.sample(10))
             message = "%s | read_transformed_data %.2f seconds" % (ENV, time.time() - start)
             print(message)
             logging.info(message)

@@ -7,10 +7,12 @@ class DB_Interaction():
 
     @staticmethod
     def insert_to_TrainingResults_table(training_results_full_info_list, date_insert, config, is_training_phase = 1):
+        # training_results_full_info_list[9000:10000]
         chunks = [training_results_full_info_list[x:x + config.chunk_size] for x in range(0, len(training_results_full_info_list), config.chunk_size)]
         conn = MySQLConnection(user = config.aimluser, password = config.aimlpwd,
                                 host = config.aimlhost, port = config.aimlport, database = config.aimldb)
         cur = conn.cursor()
+        # chunks = chunks[8:11]
         if is_training_phase:
             for chunk in tqdm(chunks, desc = "Insert Training-Results-Table"):
                 jsonList = json.dumps(chunk)

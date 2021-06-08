@@ -12,13 +12,16 @@ import random
 class PredictionController():
 
     def check_Gaussian_distribution(data, config):
-        # _, p = shapiro(data)
-        # if p > .05 :
-        #     # print("Probably Gaussian")
-        #     mean, std = norm.fit(data)
-        # else:
-        #     # print("Probably not Gaussian")
-        mean, std = config.default_mean, config.default_std
+        if config.is_hard_classified:
+            mean, std = config.default_mean, config.default_std
+        else:
+            _, p = shapiro(data)
+            if p > .05 :
+                # print("Probably Gaussian")
+                mean, std = norm.fit(data)
+            else:
+                # print("Probably not Gaussian")
+                mean, std = config.default_mean, config.default_std
         return mean, std
 
     def predict_for_a_singleton(today_mode, upper_bound, lower_bound):
@@ -83,11 +86,11 @@ class PredictionController():
         mydf['IP'] = concat_df['temp_output1'].apply(lambda z : z[0])
         mydf['IPW'] = concat_df['temp_output1'].apply(lambda z : z[1])
         # mydf['IPW'] = concat_df['temp_output1'].apply(lambda z : random.randint(0,1))
-        concat_df['temp_output2'] = concat_df.apply(lambda z : PredictionController.update_training_results_for_a_singleton(z['SWD'], z['SLD'], z['STR'], z['Today_Margin'], amplitude), axis = 1)
-        mydf['M'] = concat_df['temp_output2'].apply(lambda z : z[0])
-        mydf['SWD'] = concat_df['temp_output2'].apply(lambda z : z[1])
-        mydf['SLD'] = concat_df['temp_output2'].apply(lambda z : z[2])
-        mydf['STR'] = concat_df['temp_output2'].apply(lambda z : int(z[3]))
+        # concat_df['temp_output2'] = concat_df.apply(lambda z : PredictionController.update_training_results_for_a_singleton(z['SWD'], z['SLD'], z['STR'], z['Today_Margin'], amplitude), axis = 1)
+        mydf['M'] = 1  # concat_df['temp_output2'].apply(lambda z : z[0])
+        mydf['SWD'] = 1  # concat_df['temp_output2'].apply(lambda z : z[1])
+        mydf['SLD'] = 1 #concat_df['temp_output2'].apply(lambda z : z[2])
+        mydf['STR'] = 1 # concat_df['temp_output2'].apply(lambda z : int(z[3]))
         mydf['IPTW'] = concat_df['Today_Margin'].apply(lambda z : 1 if z > 0 else 0)
         mydf['PID'] = PID
         # print("mydf\n", mydf)
@@ -126,8 +129,8 @@ class PredictionController():
         # history_training_results_data['IPW'] = history_training_results_data['temp_output1'].apply(lambda z : z[1])
         # history_training_results_data['IPTW'] = history_training_results_data['UserWinloss']
         # history_training_results_data['PID'] = PID
-        predict_full_info_list_right_after_training = mydf.to_dict(orient = 'records')
-        DB_Interaction.insert_to_PredictedResults_table(predict_full_info_list_right_after_training, day, config)
+        # predict_full_info_list_right_after_training = mydf.to_dict(orient = 'records')
+        # DB_Interaction.insert_to_PredictedResults_table(predict_full_info_list_right_after_training, day, config)
         # print("mydf\n", mydf.head())
         return mydf
 
@@ -139,9 +142,12 @@ class PredictionController():
             # print("daily_test_data\n", daily_test_data.head())
             concat_df = daily_test_data.merge(prediction_results, how = 'inner', left_on = ['C', 'CAT'], right_on = ['C', 'CAT'])
             # print("concat_df\n", concat_df.head())
-            collection_of_boundaries, concat_df = PredictionController.validate_training_results(concat_df, config)
-            answer_and_next_prediction = PredictionController.process_prediction_phase(collection_of_boundaries, concat_df, config.amplitude, PID)
-            answer_and_next_prediction_full_info_list = answer_and_next_prediction.to_dict(orient = 'records')
-            DB_Interaction.insert_to_PredictedResults_table(answer_and_next_prediction_full_info_list, test_date, config, right_after_prediction = 0)
+            _, concat_df = PredictionController.validate_training_results(concat_df, config)
+            # answer_and_next_prediction = PredictionController.process_prediction_phase(collection_of_boundaries, concat_df, config.amplitude, PID)
+            # answer_and_next_prediction_full_info_list = answer_and_next_prediction.to_dict(orient = 'records')
+            # DB_Interaction.insert_to_PredictedResults_table(answer_and_next_prediction_full_info_list, test_date, config, right_after_prediction = 0)
             # DB_Interaction.insert_to_TrainingResults_table(predict_full_info_list, day, config, is_training_phase = 0)
             # print(f"======================================{day} DONE=======================================")
+        print("concat_df\n", concat_df.head())
+        print("Number of C-CAT\n", concat_df.groupby(["C", "CAT"]).first().reset_index().shape)
+        concat_df.to_csv(f"D:/Project/Robot/TRANSFORMED_DATA/predictions_24_V8_30_{PID}.csv", index = False)

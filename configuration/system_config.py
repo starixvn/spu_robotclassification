@@ -37,6 +37,10 @@ class SystemConfig(object):
             self.config, 'DEFAULT', 'CATEGORY_MAPPING_FILE_NAME')
         self.day_eliminated_category_mapping_file_name = self.getDataStrConfig(
             self.config, 'DEFAULT', 'DAY_ELIMINATED_CATEGORY_MAPPING_FILE_NAME')
+        self.day_and_live_indicator_eliminated_category_mapping_file_name = self.getDataStrConfig(
+            self.config, 'DEFAULT', 'DAY_AND_LIVE_INDICATOR_ELIMINATED_CATEGORY_MAPPING_FILE_NAME')
+        self.vs_sport_only_category_mapping_file_name = self.getDataStrConfig(
+            self.config, 'DEFAULT', 'VS_SPORT_ONLY_CATEGORY_MAPPING_FILE_NAME')
         self.cus_cat_couple_list_folder = self.getDataStrConfig(
             self.config, 'DEFAULT', 'CUS_CAT_COUPLE_LIST_FOLDER')
         self.cus_cat_couple_list_file_name = self.getDataStrConfig(
@@ -57,6 +61,8 @@ class SystemConfig(object):
         # define Robot config
         self.chunk_size = int(self.getDataStrConfig(
             self.config, 'ROBOTCONFIG', 'CHUNK_SIZE'))
+        self.is_hard_classified = int(self.getDataStrConfig(
+            self.config, 'ROBOTCONFIG', 'IS_HARD_CLASSIFIED'))
         self.day_threshold = int(self.getDataStrConfig(
             self.config, 'ROBOTCONFIG', 'DAY_THRESHOLD'))
         self.split_history_present = int(self.getDataStrConfig(

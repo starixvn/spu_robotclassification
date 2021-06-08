@@ -30,7 +30,7 @@ class DataTransformer():
                 customers_dict[customer][category_name + '_num_active_days'] = 0
                 for kind in kinds:
                     for criterion in criteria:
-                        if kind == 'sequence':
+                        if not kind == 'accummulated':
                             customers_dict[customer][category_name + criterion + '_' + kind] = ''
                         else:
                             customers_dict[customer][category_name + criterion + '_' + kind] = 0
@@ -103,11 +103,11 @@ class DataTransformer():
             for cat,value in cats.items():
                 customers_dict[customer][cat[:-2] + '_num_active_days'] += 1/3    
                 if cat.endswith('BC'):
-                    customers_dict[customer][cat + '_in'] += value/bc_total
+                    customers_dict[customer][cat + '_in'] += ',' + str(value/bc_total)
                     customers_dict[customer][cat + '_accummulated'] += value
                     customers_dict[customer][cat + '_sequence'] += ','+str(value)
                 elif cat.endswith('TO'):
-                    customers_dict[customer][cat + '_in'] += value/to_total
+                    customers_dict[customer][cat + '_in'] += ',' + str(value/to_total)
                     customers_dict[customer][cat + '_accummulated'] += value
                     customers_dict[customer][cat + '_sequence'] += ','+str(value)
                 else:
@@ -122,15 +122,17 @@ class DataTransformer():
             for customer,value in cus.items():
                 if attribute.endswith('BC'):
                     stat_of_bet_count_in_a_day = list(cus.values())
-                    customers_dict[customer][attribute+'_out'] += stats.percentileofscore(stat_of_bet_count_in_a_day, value)/100
+                    # customers_dict[customer][attribute+'_out'] += stats.percentileofscore(stat_of_bet_count_in_a_day, value)/100
+                    customers_dict[customer][attribute+'_out'] += ',' + str(stats.percentileofscore(stat_of_bet_count_in_a_day, value)/100)
                 elif attribute.endswith('TO'):
                     stat_of_turnover_in_a_day = list(cus.values())
                 
-                    customers_dict[customer][attribute+'_out'] += stats.percentileofscore(stat_of_turnover_in_a_day, value)/100
+                    customers_dict[customer][attribute+'_out'] += ',' + str(stats.percentileofscore(stat_of_turnover_in_a_day, value)/100)
         return customers_dict
 
     def transform(dataframe, str_to_id, id_to_str):
-        active_days = dataframe.ReportDate.unique()
+        active_days = sorted(set(dataframe.ReportDate.to_list()))
+        print("active_days = " + str(active_days))
         customer_list = dataframe.C.unique()
         customers_dict = DataTransformer.build_outline_of_customer_dict(customer_list, str_to_id)
         for active_day in tqdm(active_days, desc = 'Transform Data'):
@@ -144,7 +146,10 @@ class DataTransformer():
             customers_dict = DataTransformer.compute_outstanding_score(daily_stats_cat_based, customers_dict)
 
         features_df = pd.DataFrame(customers_dict.values(), index = customers_dict.keys())
+        # test_arr = features_df.loc[13515302, "s1b1NLWL_sequence"]
         features_df.index.name = 'C'
         features_df = features_df.reset_index()
+        # print("TAIL of test_arr" + test_arr)
+        # print("features_df\n", features_df)
         return features_df
         
