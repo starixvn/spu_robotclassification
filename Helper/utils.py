@@ -1,6 +1,7 @@
 import pandas as pd
 from datetime import date
 import os
+from pandas.core.reshape.merge import merge
 from tqdm import tqdm
 class Utilities():
 
@@ -58,10 +59,10 @@ class Utilities():
         if abs(margin) > 1:
             margin = int(margin/abs(margin))
         if margin > 0:
-            # return amplitude*margin*(1 + outstanding_TO_score*abs(streak)), 0 
-            return amplitude*(margin+2*outstanding_TO_score)/3*(1 + (streak - 1)/10), 0
+            # return amplitude*margin*(1 + outstanding_TO_score*abs(streak)), 0 *(1 + (streak - 1)/10)
+            return amplitude*(margin+2*outstanding_TO_score)/3, 0
         else:
-            return 0, amplitude*(abs(margin)+2*outstanding_TO_score)/3*(1 + (abs(streak) - 1)/10) 
+            return 0, amplitude*(abs(margin)+2*outstanding_TO_score)/3 #*(1 + (abs(streak) - 1)/10) 
 
     @staticmethod
     def is_weekend(a_given_date):
@@ -100,6 +101,7 @@ class Utilities():
         day_count = day_count.rename(columns = {"IBCWinloss":phase + winloss_sign + "ActiveDays"})
                                                     
         merger = marginalization.merge(day_count, how = "inner", right_on = ["C", "CAT"], left_on = ["C", "CAT"])
+        merger[phase + winloss_sign + "WinlossPerDay"] = merger[phase + winloss_sign + "UserWinloss"]/merger[phase + winloss_sign + "ActiveDays"]
         return merger
         
     def preprocess_data(data, str_to_id, is_training, is_aggregated = 0, dead_line = None, min_bet_count = 10, 
@@ -162,7 +164,7 @@ class Utilities():
             the_finalized = merged.groupby(['C', 'CAT', 'ReportDate']).sum().reset_index()
             the_finalized = the_finalized[(the_finalized.UserWinloss != 0) & (the_finalized.BetCount >= min_bet_count)]
             # the_finalized = the_finalized[the_finalized.UserWinloss != 0]
-            the_finalized.to_csv("D:/Project/Robot/TEST_DATA/preprocessed_test.csv", index = False)
+            the_finalized.to_csv(f"D:/Project/Robot/TEST_DATA/preprocessed_{phase}.csv", index = False)
             # the_finalized = the_finalized[(the_finalized.C == 13515302) & (the_finalized.CAT == 2)]
             # print("TAIL of the_finalized\n", the_finalized.tail(10))
         return the_finalized

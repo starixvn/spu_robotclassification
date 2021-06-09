@@ -105,10 +105,9 @@ class TrainingModelController():
             internal_TO = np.mean(internal_TO_array)
             turn_over_array = np.array([float(x) for x in turn_over_sequence.split(',') if x != ''])
             win_loss_array = np.array([float(x) for x in win_loss_sequence.split(',') if x != ''])
-            # if custid == 13515302 and categoryID == 2:
-            #     print("win_loss_sequence = " + win_loss_sequence)
-            #     print("win_loss_array = " + str(win_loss_array[-10:]))
-            #     raise KeyError
+            # training_negative_WL_per_day = round(np.abs(np.mean(win_loss_array[win_loss_array < 0])), 4)
+            training_negative_WL_per_day = round(np.mean(win_loss_array[win_loss_array < 0]), 4)
+            training_positive_WL_per_day = round(np.mean(win_loss_array[win_loss_array > 0]), 4)
             margin_array = win_loss_array / turn_over_array
 
             # round 1 filter
@@ -116,11 +115,11 @@ class TrainingModelController():
             outstanding_TO_array = outstanding_TO_array[margin_array != 0]
 
             # round 2 filter
-            if len(filtered_margin_array) >= threshold_activ_days :
-                mode, a, b, streak, num_active_days = TrainingModelController.process_a_margin_array(filtered_margin_array, outstanding_TO_array, outstanding_BC_array, split, amplitude)
-                training_results_daily_info_list.append({'C':custid, 'M':mode, 'SWD':turn_over_accummulated, 'SLD':bet_count_accummulated, 'STR':streak, 'CAT':categoryID, 
-                                                        'AD':num_active_days, 'PID':PID,"OBC":outstanding_BC, "OTO":outstanding_TO, "IBC":internal_BC, "ITO":internal_TO})
-                cat_cus_couple_daily_list.append({"CAT":categoryID, "C":custid})
+            # if len(filtered_margin_array) >= threshold_activ_days :
+            mode, _, _, streak, num_active_days = TrainingModelController.process_a_margin_array(filtered_margin_array, outstanding_TO_array, outstanding_BC_array, split, amplitude)
+            training_results_daily_info_list.append({'C':custid, 'M':mode, 'SWD':training_positive_WL_per_day, 'SLD':training_negative_WL_per_day, 'STR':streak, 'CAT':categoryID, 
+                                                    'AD':num_active_days, 'PID':PID,"OBC":outstanding_BC, "OTO":outstanding_TO, "IBC":internal_BC, "ITO":internal_TO})
+            cat_cus_couple_daily_list.append({"CAT":categoryID, "C":custid})
         # print("training_results_daily_info_list\n", training_results_daily_info_list[:5])
         return training_results_daily_info_list, cat_cus_couple_daily_list
 

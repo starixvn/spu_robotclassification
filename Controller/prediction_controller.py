@@ -74,9 +74,29 @@ class PredictionController():
                 return (1,0)
         else:
             return (0,0)
+    
+    @staticmethod
+    def is_prediction_wrong(train_nega_wl, test_nega_wl, train_posi_wl, test_posi_wl,
+                            mode, wl, winning_threshold):
+        if (mode - winning_threshold)*wl < 0 :
+            if (wl > 0 and test_posi_wl >= abs(train_nega_wl)) or \
+                (wl < 0 and abs(test_nega_wl) >= train_posi_wl):
+                return 1
+            else:
+                return 0
+        else:
+            return 0
+    
+    @staticmethod
+    def is_truth_win_after_consideration(is_predict_win, is_prediction_wrong):
+        if is_prediction_wrong:
+            return 1 - is_predict_win
+        else:
+            return is_predict_win
 
-    def process_prediction_phase(collection_of_boundaries, concat_df, amplitude, PID):
-        concat_df['Today_Margin'] = concat_df['UserWinloss']/concat_df['IBCTurnover']
+
+    def process_prediction_phase(collection_of_boundaries, concat_df, amplitude, PID, winning_threshold):
+        # concat_df['Today_Margin'] = concat_df['TestingUserWinloss']/concat_df['IBCTurnover']
         concat_df['STR'] = 1
         mydf = pd.DataFrame()
         mydf['C'] = concat_df['C']
@@ -84,14 +104,28 @@ class PredictionController():
         # mydf['AD'] = concat_df['AD'] + 1
         concat_df['temp_output1'] = concat_df.apply(lambda z : PredictionController.validate_predictable_mode(z['M'], z['CAT'], collection_of_boundaries), axis = 1)
         mydf['IP'] = concat_df['temp_output1'].apply(lambda z : z[0])
-        mydf['IPW'] = concat_df['temp_output1'].apply(lambda z : z[1])
+        mydf['IPW'] = concat_df["IPW"] # concat_df['temp_output1'].apply(lambda z : z[1])
         # mydf['IPW'] = concat_df['temp_output1'].apply(lambda z : random.randint(0,1))
         # concat_df['temp_output2'] = concat_df.apply(lambda z : PredictionController.update_training_results_for_a_singleton(z['SWD'], z['SLD'], z['STR'], z['Today_Margin'], amplitude), axis = 1)
-        mydf['M'] = 1  # concat_df['temp_output2'].apply(lambda z : z[0])
-        mydf['SWD'] = 1  # concat_df['temp_output2'].apply(lambda z : z[1])
-        mydf['SLD'] = 1 #concat_df['temp_output2'].apply(lambda z : z[2])
+        mydf['M'] = concat_df["M"]  # concat_df['temp_output2'].apply(lambda z : z[0])
+        mydf['SWD'] = concat_df["TestingPositiveWinlossPerDay"]  # concat_df['temp_output2'].apply(lambda z : z[1])
+        mydf['SLD'] = concat_df["TestingNegativeWinlossPerDay"] #concat_df['temp_output2'].apply(lambda z : z[2])
         mydf['STR'] = 1 # concat_df['temp_output2'].apply(lambda z : int(z[3]))
-        mydf['IPTW'] = concat_df['Today_Margin'].apply(lambda z : 1 if z > 0 else 0)
+        mydf['IsPredictionWrong'] = concat_df.apply(lambda z : PredictionController.is_prediction_wrong(
+                                                                                                    z['SLD']
+                                                                                                    ,z['TestingNegativeWinlossPerDay']
+                                                                                                    ,z['SWD']
+                                                                                                    ,z['TestingPositiveWinlossPerDay']
+                                                                                                    ,z['M']
+                                                                                                    ,z['TestingUserWinloss']
+                                                                                                    ,winning_threshold
+                                                                                                    ),
+                                                axis = 1)
+        # mydf['IPTW'] = concat_df['Today_Margin'].apply(lambda z : 1 if z > 0 else 0)
+        # mydf = mydf[mydf.IsPredictionWrong != -1]
+        mydf["IPTW"] = mydf.apply(lambda z : PredictionController.is_truth_win_after_consideration(z["IPW"],
+                                                                                                    z["IsPredictionWrong"]),
+                                                                                                axis = 1)
         mydf['PID'] = PID
         # print("mydf\n", mydf)
         return mydf
@@ -103,6 +137,7 @@ class PredictionController():
         history_training_results_data = DB_Interaction.get_from_TrainingResults_table(cat_cus_couple_dataframe, config, PID)
         # print("BEFORE | sub_test_data\n", sub_test_data.head())
         # history_training_results_data.to_csv(config.transformed_data_folder + "history_training_results_data.csv", index = False)
+        history_training_results_data = history_training_results_data[history_training_results_data.AD >= config.day_threshold]
         collection_of_boundaries, merged_df = PredictionController.validate_training_results(history_training_results_data, config)
         # print("AFTER | history_training_results_data\n", history_training_results_data.head())
         # history_training_results_data.to_csv(config.transformed_data_folder + "history_training_results_data.csv", index = False)
@@ -129,25 +164,26 @@ class PredictionController():
         # history_training_results_data['IPW'] = history_training_results_data['temp_output1'].apply(lambda z : z[1])
         # history_training_results_data['IPTW'] = history_training_results_data['UserWinloss']
         # history_training_results_data['PID'] = PID
-        # predict_full_info_list_right_after_training = mydf.to_dict(orient = 'records')
-        # DB_Interaction.insert_to_PredictedResults_table(predict_full_info_list_right_after_training, day, config)
+        predict_full_info_list_right_after_training = mydf.to_dict(orient = 'records')
+        DB_Interaction.insert_to_PredictedResults_table(predict_full_info_list_right_after_training, day, config)
         # print("mydf\n", mydf.head())
         return mydf
 
     def get_answer_from_test_data(test_data, config, PID, test_date, prediction_results):
         print("prediction_results\n", prediction_results.head())
-        num_days = test_data.ReportDate.unique()
-        for day in tqdm(num_days, desc = "Prediction"):
-            daily_test_data = test_data[test_data.ReportDate == day]
+        # num_days = test_data.ReportDate.unique()
+        # for day in tqdm(num_days, desc = "Prediction"):
+        #     daily_test_data = test_data[test_data.ReportDate == day]
             # print("daily_test_data\n", daily_test_data.head())
-            concat_df = daily_test_data.merge(prediction_results, how = 'inner', left_on = ['C', 'CAT'], right_on = ['C', 'CAT'])
-            # print("concat_df\n", concat_df.head())
-            _, concat_df = PredictionController.validate_training_results(concat_df, config)
-            # answer_and_next_prediction = PredictionController.process_prediction_phase(collection_of_boundaries, concat_df, config.amplitude, PID)
-            # answer_and_next_prediction_full_info_list = answer_and_next_prediction.to_dict(orient = 'records')
-            # DB_Interaction.insert_to_PredictedResults_table(answer_and_next_prediction_full_info_list, test_date, config, right_after_prediction = 0)
-            # DB_Interaction.insert_to_TrainingResults_table(predict_full_info_list, day, config, is_training_phase = 0)
-            # print(f"======================================{day} DONE=======================================")
-        print("concat_df\n", concat_df.head())
-        print("Number of C-CAT\n", concat_df.groupby(["C", "CAT"]).first().reset_index().shape)
-        concat_df.to_csv(f"D:/Project/Robot/TRANSFORMED_DATA/predictions_24_V8_30_{PID}.csv", index = False)
+        concat_df = test_data.merge(prediction_results, how = 'inner', left_on = ['C', 'CAT'], right_on = ['C', 'CAT'])
+        # print("concat_df\n", concat_df.head())
+        collection_of_boundaries, concat_df = PredictionController.validate_training_results(concat_df, config)
+        answer_and_next_prediction = PredictionController.process_prediction_phase(collection_of_boundaries, concat_df, config.amplitude, 
+                                                                                    PID, config.default_mean + config.default_std)
+        answer_and_next_prediction_full_info_list = answer_and_next_prediction.to_dict(orient = 'records')
+        DB_Interaction.insert_to_PredictedResults_table(answer_and_next_prediction_full_info_list, test_date, config, right_after_prediction = 0)
+        # DB_Interaction.insert_to_TrainingResults_table(predict_full_info_list, day, config, is_training_phase = 0)
+        # print(f"======================================{day} DONE=======================================")
+        # print("concat_df\n", concat_df.head())
+        # print("Number of C-CAT\n", concat_df.groupby(["C", "CAT"]).first().reset_index().shape)
+        # concat_df.to_csv(f"D:/Project/Robot/TRANSFORMED_DATA/predictions_24_V8_30_{PID}.csv", index = False)
