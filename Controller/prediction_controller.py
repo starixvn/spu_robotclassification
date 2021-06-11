@@ -1,10 +1,16 @@
 from scipy.stats import shapiro
 from scipy.stats.distributions import norm
-from Helper.utils import Utilities
+# from Utilities.utils import Utilities
 from Model.distribution_model import DistributionModel
-from DataAccess.database_interaction import DB_Interaction
+# from DataAccess.database_interaction import DB_Interaction
+from DataAccess.DataAccessConnection import spu_aiml
+from DataAccess.Model.SPU_AIML.SPU_GetTrainResultsDAModel import SPU_GetTrainResultsDAModel
+from DataAccess.Model.SPU_AIML.SPU_InsertWinlossPredictionDAModel import SPU_InsertWinlossPredictionDAModel
+from DataAccess.DataAccessConnection import DataAccessConnection
+from DataAccess.CoreDA.BaseDA import BaseDA
 from tqdm import tqdm
 import pandas as pd
+import json
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -31,22 +37,22 @@ class PredictionController():
             win_lose_guess = 0
         return win_lose_guess
     
-    def update_training_results_for_a_singleton(a, b, streak, today_margin, amplitude):
-        delta_a, delta_b = Utilities.compute_deltas(streak, today_margin, amplitude)
-        updated_a = a + delta_a
-        updated_b = b + delta_b
-        classifier = DistributionModel(0, 0, updated_a, updated_b)
-        updated_mode = classifier.get_mode()
-        if today_margin == 0:
-            return updated_mode, a,b, streak
-        else:
-            try:
-                updated_streak = int(today_margin / abs(today_margin))
-                if streak*today_margin > 0:
-                    updated_streak = streak + updated_streak
-                return updated_mode, updated_a, updated_b, updated_streak
-            except ValueError:
-                print("today_margin", today_margin)
+    # def update_training_results_for_a_singleton(a, b, streak, today_margin, amplitude):
+    #     delta_a, delta_b = Utilities.compute_deltas(streak, today_margin, amplitude)
+    #     updated_a = a + delta_a
+    #     updated_b = b + delta_b
+    #     classifier = DistributionModel(0, 0, updated_a, updated_b)
+    #     updated_mode = classifier.get_mode()
+    #     if today_margin == 0:
+    #         return updated_mode, a,b, streak
+    #     else:
+    #         try:
+    #             updated_streak = int(today_margin / abs(today_margin))
+    #             if streak*today_margin > 0:
+    #                 updated_streak = streak + updated_streak
+    #             return updated_mode, updated_a, updated_b, updated_streak
+    #         except ValueError:
+    #             print("today_margin", today_margin)
 
     def validate_training_results(concat_df, robotConfig):
         collection_of_boundaries = {}
@@ -134,7 +140,19 @@ class PredictionController():
         # sub_test_data = test_data[['C', 'CAT', 'UserWinloss']]
         # sub_test_data['UserWinloss'] = sub_test_data['UserWinloss'].apply(lambda z : 1 if z > 0 else 0)
         # cat_cus_couple_dataframe, config, day = args
-        history_training_results_data = DB_Interaction.get_from_TrainingResults_table(cat_cus_couple_dataframe, config, PID)
+        # history_training_results_data = DB_Interaction.get_from_TrainingResults_table(cat_cus_couple_dataframe, config, PID)
+        cat_cus_couple_dataframe = cat_cus_couple_dataframe.drop_duplicates()
+        get_objects = cat_cus_couple_dataframe.to_dict(orient = 'records')
+        jsonList = json.dumps(get_objects)
+
+        connection_spu = DataAccessConnection(spu_aiml)
+        ip_param = SPU_GetTrainResultsDAModel(jsonList, PID)
+        dba_results = BaseDA.execute("SPU_AIML_GetTrainResults", spu_aiml, ip_param, connection_spu)
+        df = pd.DataFrame(dba_results[0], columns = ['C', 'CAT', 'M', 'SWD', 'SLD', 'STR', 'AD'])
+        df['M'] = df['M'].astype(float)
+        df['SWD'] = df['SWD'].astype(float)
+        df['SLD'] = df['SLD'].astype(float)
+        history_training_results_data = df
         # print("BEFORE | sub_test_data\n", sub_test_data.head())
         # history_training_results_data.to_csv(config.transformed_data_folder + "history_training_results_data.csv", index = False)
         history_training_results_data = history_training_results_data[history_training_results_data.AD >= config.day_threshold]
@@ -165,8 +183,13 @@ class PredictionController():
         # history_training_results_data['IPTW'] = history_training_results_data['UserWinloss']
         # history_training_results_data['PID'] = PID
         predict_full_info_list_right_after_training = mydf.to_dict(orient = 'records')
-        DB_Interaction.insert_to_PredictedResults_table(predict_full_info_list_right_after_training, day, config)
+        chunks = [predict_full_info_list_right_after_training[x:x + config.chunk_size] for x in \
+                    range(0, len(predict_full_info_list_right_after_training), config.chunk_size)]
         # print("mydf\n", mydf.head())
+        for chunk in chunks:
+            chunk = json.dumps(chunk)
+            ip_param = SPU_InsertWinlossPredictionDAModel(chunk, day)
+            dba_results = BaseDA.execute("SPU_AIML_InsertWinlossPrediction", spu_aiml, ip_param, connection_spu)
         return mydf
 
     def get_answer_from_test_data(test_data, config, PID, test_date, prediction_results):
@@ -181,9 +204,18 @@ class PredictionController():
         answer_and_next_prediction = PredictionController.process_prediction_phase(collection_of_boundaries, concat_df, config.amplitude, 
                                                                                     PID, config.default_mean + config.default_std)
         answer_and_next_prediction_full_info_list = answer_and_next_prediction.to_dict(orient = 'records')
-        DB_Interaction.insert_to_PredictedResults_table(answer_and_next_prediction_full_info_list, test_date, config, right_after_prediction = 0)
+        # DB_Interaction.insert_to_PredictedResults_table(answer_and_next_prediction_full_info_list, test_date, config, right_after_prediction = 0)
         # DB_Interaction.insert_to_TrainingResults_table(predict_full_info_list, day, config, is_training_phase = 0)
         # print(f"======================================{day} DONE=======================================")
         # print("concat_df\n", concat_df.head())
         # print("Number of C-CAT\n", concat_df.groupby(["C", "CAT"]).first().reset_index().shape)
         # concat_df.to_csv(f"D:/Project/Robot/TRANSFORMED_DATA/predictions_24_V8_30_{PID}.csv", index = False)
+        chunks = [answer_and_next_prediction_full_info_list[x:x + config.chunk_size] for x in \
+                    range(0, len(answer_and_next_prediction_full_info_list), config.chunk_size)]
+        # DB_Interaction.insert_to_PredictedResults_table(predict_full_info_list_right_after_training, day, config)
+        # print("mydf\n", mydf.head())
+        connection_spu = DataAccessConnection(spu_aiml)
+        for chunk in chunks:
+            chunk = json.dumps(chunk)
+            ip_param = SPU_InsertWinlossPredictionDAModel(chunk, test_date)
+            dba_results = BaseDA.execute("SPU_AIML_InsertWinlossPrediction", spu_aiml, ip_param, connection_spu)

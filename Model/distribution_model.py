@@ -55,6 +55,22 @@ class DistributionModel():
             plt.plot(self.muy_arr, posterior)
         plt.title("Mode %.4f | STD %.4f" % (mode, std),fontsize=30)
         plt.show()
+    
+    
+    def compute_deltas(self, margin, outstanding_TO_score, outstanding_BC_score, streak, amplitude):
+        """
+        >>> Input   :   margin      , a float number in range[-1,1]
+                        streak      , an integer
+        >>> Output  :   delta_a     , a float number
+                        delta_b     , a float number
+        """
+        if abs(margin) > 1:
+            margin = int(margin/abs(margin))
+        if margin > 0:
+            # return amplitude*margin*(1 + outstanding_TO_score*abs(streak)), 0 
+            return amplitude*(margin+2*outstanding_TO_score)/3*(1 + (streak - 1)/10), 0
+        else:
+            return 0, amplitude*(abs(margin)+2*outstanding_TO_score)/3*(1 + (abs(streak) - 1)/10) # 
 
     def get_mode(self):
         try :

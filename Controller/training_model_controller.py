@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from Helper.utils import Utilities
+from Utilities.Data_Preprocessing_Manager import Data_Preprocessing_Manager
 from Model.distribution_model import DistributionModel
 
 class TrainingModelController():
@@ -20,21 +20,21 @@ class TrainingModelController():
             streak = -1
         outstanding_TO_score = outstanding_TO_array[0]
         outstanding_BC_score = outstanding_BC_array[0]
-        delta_a, delta_b = Utilities.compute_deltas(present[0], outstanding_TO_score, outstanding_BC_score, streak, amplitude)
+        delta_a, delta_b = cus.compute_deltas(present[0], outstanding_TO_score, outstanding_BC_score, streak, amplitude)
         cus.update_hyper_params(delta_a,delta_b)
         for day in range(1, len(present)):
             outstanding_TO_score = outstanding_TO_array[day]
             outstanding_BC_score = outstanding_BC_array[day]
             if present[day]*present[day-1] > 0:
                 streak += int(present[day]/abs(present[day]))
-                delta_a,delta_b = Utilities.compute_deltas(present[day], outstanding_TO_score, outstanding_BC_score, streak, amplitude)
+                delta_a,delta_b = cus.compute_deltas(present[day], outstanding_TO_score, outstanding_BC_score, streak, amplitude)
                 cus.update_hyper_params(delta_a, delta_b)
             else:
                 if present[day] > 0:
                     streak = 1
                 else:
                     streak = -1
-                delta_a, delta_b = Utilities.compute_deltas(present[day], outstanding_TO_score, outstanding_BC_score, streak, amplitude)
+                delta_a, delta_b = cus.compute_deltas(present[day], outstanding_TO_score, outstanding_BC_score, streak, amplitude)
                 cus.update_hyper_params(delta_a, delta_b)
         return cus, streak
 
@@ -132,7 +132,7 @@ class TrainingModelController():
         # print("test_arr = " + test_arr)
         no_gain_count = 0
         for category in categories:
-            cat_df = Utilities.filter_categorie(category, transformed_train_data)
+            cat_df = Data_Preprocessing_Manager.filter_categorie(category, transformed_train_data)
             if len(cat_df.index) == 0:
                 no_gain_count += 1
                 print(f"No gain from this category {no_gain_count} !")

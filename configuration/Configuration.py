@@ -45,6 +45,7 @@ class SystemConfig(object):
             self.config, 'DEFAULT', 'CUS_CAT_COUPLE_LIST_FOLDER')
         self.cus_cat_couple_list_file_name = self.getDataStrConfig(
             self.config, 'DEFAULT', 'CUS_CAT_COUPLE_LIST_FILE_NAME')
+        self.app_name = self.getDataStrConfig(self.config, 'DEFAULT', 'APP_NAME')
 
         # define information db SPU
         self.aimluser = self.getDataStrConfig(
@@ -57,6 +58,18 @@ class SystemConfig(object):
             self.config, 'SPU_AIML_DB', 'PORT')
         self.aimldb = self.getDataStrConfig(
             self.config, 'SPU_AIML_DB', 'DATABASE_NAME')
+        
+        # define information db CTS
+        self.ctsuser = self.getDataStrConfig(
+            self.config, 'CTS_DataCenter_DB', 'USERNAME')
+        self.ctspwd = self.getDataStrConfig(
+            self.config, 'CTS_DataCenter_DB', 'PASSWORD')
+        self.ctshost = self.getDataStrConfig(
+            self.config, 'CTS_DataCenter_DB', 'HOST')
+        self.ctsport = self.getDataStrConfig(
+            self.config, 'CTS_DataCenter_DB', 'PORT')
+        self.ctsdb = self.getDataStrConfig(
+            self.config, 'CTS_DataCenter_DB', 'DATABASE_NAME')
 
         # define Robot config
         self.chunk_size = int(self.getDataStrConfig(
@@ -101,3 +114,6 @@ class SystemConfig(object):
     def getDataBooleanConfig(self, config, parent, child):
         config.sections()
         return config[parent].getboolean(child)
+
+ENV = 'LOCAL'
+config = SystemConfig(ENV.lower() + '_' + "config.ini", ENV)
