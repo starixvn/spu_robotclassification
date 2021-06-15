@@ -132,7 +132,7 @@ class DataTransformer():
 
     def transform(dataframe, str_to_id, id_to_str):
         active_days = sorted(set(dataframe.ReportDate.to_list()))
-        print("active_days = " + str(active_days))
+        # print("active_days = " + str(active_days))
         customer_list = dataframe.C.unique()
         customers_dict = DataTransformer.build_outline_of_customer_dict(customer_list, str_to_id)
         for active_day in tqdm(active_days, desc = 'Transform Data'):

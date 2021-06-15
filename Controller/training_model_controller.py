@@ -84,6 +84,7 @@ class TrainingModelController():
             bet_count_accummulated = int(cat_df.loc[custid, category + 'BC_accummulated'])
             win_loss_sequence = cat_df.loc[custid, category + 'WL_sequence']
             
+            
             num_active_days = cat_df.loc[custid, category + '_num_active_days']
             if num_active_days == 0:
                 continue
@@ -105,7 +106,7 @@ class TrainingModelController():
             internal_TO = np.mean(internal_TO_array)
             turn_over_array = np.array([float(x) for x in turn_over_sequence.split(',') if x != ''])
             win_loss_array = np.array([float(x) for x in win_loss_sequence.split(',') if x != ''])
-            # training_negative_WL_per_day = round(np.abs(np.mean(win_loss_array[win_loss_array < 0])), 4)
+            accummulated_win_loss = np.sum(win_loss_array)
             training_negative_WL_per_day = round(np.mean(win_loss_array[win_loss_array < 0]), 4)
             training_positive_WL_per_day = round(np.mean(win_loss_array[win_loss_array > 0]), 4)
             margin_array = win_loss_array / turn_over_array
@@ -119,7 +120,7 @@ class TrainingModelController():
             mode, _, _, streak, num_active_days = TrainingModelController.process_a_margin_array(filtered_margin_array, outstanding_TO_array, outstanding_BC_array, split, amplitude)
             training_results_daily_info_list.append({'C':custid, 'M':mode, 'SWD':training_positive_WL_per_day, 'SLD':training_negative_WL_per_day, 'STR':streak, 'CAT':categoryID, 
                                                     'AD':num_active_days, 'PID':PID,"OBC":outstanding_BC, "OTO":outstanding_TO, "IBC":internal_BC, "ITO":internal_TO})
-            cat_cus_couple_daily_list.append({"CAT":categoryID, "C":custid})
+            cat_cus_couple_daily_list.append({"CAT":categoryID, "C":custid, "AccWL":accummulated_win_loss})
         # print("training_results_daily_info_list\n", training_results_daily_info_list[:5])
         return training_results_daily_info_list, cat_cus_couple_daily_list
 

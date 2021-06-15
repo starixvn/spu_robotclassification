@@ -36,23 +36,6 @@ class PredictionController():
         elif today_mode <= lower_bound:
             win_lose_guess = 0
         return win_lose_guess
-    
-    # def update_training_results_for_a_singleton(a, b, streak, today_margin, amplitude):
-    #     delta_a, delta_b = Utilities.compute_deltas(streak, today_margin, amplitude)
-    #     updated_a = a + delta_a
-    #     updated_b = b + delta_b
-    #     classifier = DistributionModel(0, 0, updated_a, updated_b)
-    #     updated_mode = classifier.get_mode()
-    #     if today_margin == 0:
-    #         return updated_mode, a,b, streak
-    #     else:
-    #         try:
-    #             updated_streak = int(today_margin / abs(today_margin))
-    #             if streak*today_margin > 0:
-    #                 updated_streak = streak + updated_streak
-    #             return updated_mode, updated_a, updated_b, updated_streak
-    #         except ValueError:
-    #             print("today_margin", today_margin)
 
     def validate_training_results(concat_df, robotConfig):
         collection_of_boundaries = {}
@@ -108,8 +91,8 @@ class PredictionController():
         mydf['C'] = concat_df['C']
         mydf['CAT'] = concat_df['CAT']
         # mydf['AD'] = concat_df['AD'] + 1
-        concat_df['temp_output1'] = concat_df.apply(lambda z : PredictionController.validate_predictable_mode(z['M'], z['CAT'], collection_of_boundaries), axis = 1)
-        mydf['IP'] = concat_df['temp_output1'].apply(lambda z : z[0])
+        # concat_df['temp_output1'] = concat_df.apply(lambda z : PredictionController.validate_predictable_mode(z['M'], z['CAT'], collection_of_boundaries), axis = 1)
+        mydf['IP'] = 1 #concat_df['temp_output1'].apply(lambda z : z[0])
         mydf['IPW'] = concat_df["IPW"] # concat_df['temp_output1'].apply(lambda z : z[1])
         # mydf['IPW'] = concat_df['temp_output1'].apply(lambda z : random.randint(0,1))
         # concat_df['temp_output2'] = concat_df.apply(lambda z : PredictionController.update_training_results_for_a_singleton(z['SWD'], z['SLD'], z['STR'], z['Today_Margin'], amplitude), axis = 1)
@@ -142,7 +125,7 @@ class PredictionController():
         # cat_cus_couple_dataframe, config, day = args
         # history_training_results_data = DB_Interaction.get_from_TrainingResults_table(cat_cus_couple_dataframe, config, PID)
         cat_cus_couple_dataframe = cat_cus_couple_dataframe.drop_duplicates()
-        get_objects = cat_cus_couple_dataframe.to_dict(orient = 'records')
+        get_objects = cat_cus_couple_dataframe[["C", "CAT"]].to_dict(orient = 'records')
         jsonList = json.dumps(get_objects)
 
         connection_spu = DataAccessConnection(spu_aiml)
@@ -156,10 +139,10 @@ class PredictionController():
         # print("BEFORE | sub_test_data\n", sub_test_data.head())
         # history_training_results_data.to_csv(config.transformed_data_folder + "history_training_results_data.csv", index = False)
         history_training_results_data = history_training_results_data[history_training_results_data.AD >= config.day_threshold]
-        collection_of_boundaries, merged_df = PredictionController.validate_training_results(history_training_results_data, config)
+        # collection_of_boundaries, merged_df = PredictionController.validate_training_results(history_training_results_data, config)
         # print("AFTER | history_training_results_data\n", history_training_results_data.head())
         # history_training_results_data.to_csv(config.transformed_data_folder + "history_training_results_data.csv", index = False)
-        # merged_df = pd.merge(history_training_results_data, sub_test_data, on = ['C', 'CAT'], how = 'left')
+        merged_df = pd.merge(history_training_results_data, cat_cus_couple_dataframe, on = ['C', 'CAT'], how = 'inner')
         # merged_df = pd.merge(result_of_the_day_before, sub_test_data, on = ['C', 'CAT'])
         # answer = merged_df.to_dict(orient = 'records')
         # DB_Interaction.insert_to_PredictedResults_table(answer, day, config)
@@ -172,9 +155,13 @@ class PredictionController():
         mydf['M'] = merged_df['M']
         mydf['SWD'] = merged_df['SWD']
         mydf['SLD'] = merged_df['SLD']
-        merged_df['temp_output1'] = merged_df.apply(lambda z : PredictionController.validate_predictable_mode(z['M'], z['CAT'], collection_of_boundaries), axis = 1)
-        mydf['IP'] = merged_df['temp_output1'].apply(lambda z : z[0])
-        mydf['IPW'] = merged_df['temp_output1'].apply(lambda z : z[1])
+        # merged_df['temp_output1'] = merged_df.apply(lambda z : PredictionController.validate_predictable_mode(z['M'], z['CAT'], collection_of_boundaries), axis = 1)
+        # mydf['IP'] = merged_df['temp_output1'].apply(lambda z : z[0])
+        winning_threshold = config.default_mean + config.default_std
+        print("HEAD of merged_df\n",merged_df.head())
+        mydf['IP'] = merged_df.apply(lambda z : 1 if (z["M"] - winning_threshold)*z["AccWL"] > 0 else 0, axis = 1)
+        # mydf['IPW'] = merged_df['temp_output1'].apply(lambda z : z[1])
+        mydf['IPW'] = merged_df['M'].apply(lambda z : 1 if z >= winning_threshold else 0)
         # mydf['IPTW'] = merged_df['UserWinloss']
         mydf['PID'] = PID
         # history_training_results_data['temp_output1'] = history_training_results_data.apply(lambda z : PredictionController.validate_predictable_mode(z['M'], z['CAT'], collection_of_boundaries), axis = 1)

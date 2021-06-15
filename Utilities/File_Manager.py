@@ -13,6 +13,7 @@ class File_Manager():
             else:
                 list_files = sorted(os.listdir(location))
                 start_file_index = list_files.index(start_date + ".csv")
+                end_file = list_files[start_file_index + length_of_assessment - 1]
                 list_target_files = list_files[start_file_index:start_file_index + length_of_assessment]
                 data = pd.concat([pd.read_csv(location + fn) for fn in tqdm(list_target_files, desc = "Concat Files")], ignore_index = True)
             max_train_date = data.winlostdate.max()
@@ -24,6 +25,8 @@ class File_Manager():
             data['ReportDate'] = data['ReportDate'].apply(lambda z : z.split(' ')[0])
             print("HEAD of data\n", data.head())
             print("TAIL of data\n", data.tail())
+        except IndexError:
+            data = None
         except AttributeError:
             data =  pd.read_csv(location + file_name)
         return data

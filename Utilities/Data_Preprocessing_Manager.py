@@ -94,10 +94,10 @@ class Data_Preprocessing_Manager():
             
             positive_winloss = merged[merged.UserWinloss > 0]
             positive_merger = Data_Preprocessing_Manager.aggregate(positive_winloss, winloss_sign = "Positive", phase = phase)            
-            print("positive_merger\n", positive_merger.head())
+            # print("positive_merger\n", positive_merger.head())
             negative_winloss = merged[merged.UserWinloss < 0]
             negative_merger = Data_Preprocessing_Manager.aggregate(negative_winloss, winloss_sign = "Negative", phase = phase)
-            print("negative_merger\n", negative_merger.head())
+            # print("negative_merger\n", negative_merger.head())
             the_finalized = positive_merger.merge(negative_merger, how = "outer", on = ["C", "CAT"])
             the_finalized['ReportDate'] = dead_line
             the_finalized = the_finalized.fillna(0)
@@ -109,7 +109,7 @@ class Data_Preprocessing_Manager():
                                                     the_finalized[phase + "PositiveUserWinloss"]
             the_finalized[phase + "BetCount"] = the_finalized[phase + "NegativeBetCount"] + \
                                                 the_finalized[phase + "PositiveBetCount"]
-            print("the_finalized\n", the_finalized.head())
+            # print("the_finalized\n", the_finalized.head())
             # print("NegativeWinlossActiveDays = " + str(the_finalized.NegativeWinlossActiveDays.unique()))
             print(phase + "ActiveDays = " + str(the_finalized[phase + "ActiveDays"].unique()))
             # index_reseted = index_reseted[(index_reseted.UserWinloss != 0) & (index_reseted.BetCount >= min_bet_count)]

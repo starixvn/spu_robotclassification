@@ -1,12 +1,12 @@
 # String = "1,3,8"
 # Lyst = String.split(',')
 # print('Lyst\n',Lyst)
-import sys
-sys.path.append("C:/Users/diego.nguyen/diegoProj/RobotClassification")
-from Model.distribution_model import DistributionModel
+# import sys
+# sys.path.append("C:/Users/diego.nguyen/diegoProj/RobotClassification")
+# from Model.distribution_model import DistributionModel
 # import random
 # from Helper.utils import Utilities
-# import pandas as pd
+import pandas as pd
 # import numpy as np
 # import json
 # from configuration.system_config import SystemConfig
@@ -18,7 +18,7 @@ from Model.distribution_model import DistributionModel
 # from Controller.prediction_controller import PredictionController
 # from Helper.data_transformer import DataTransformer
 # from Helper.notify import Telegram_send_message
-# from tqdm import tqdm
+from tqdm import tqdm
 # from RobotClassificationManagement.robot_classification_manager import RobotClassificationManager
 # ENV = 'LOCAL'
 # systemConfig = SystemConfig(ENV.lower() + '_' + "config.ini", ENV)
@@ -29,35 +29,25 @@ from Model.distribution_model import DistributionModel
 #     except ZeroDivisionError:
 #         return None
 if __name__=='__main__':
-    # cus = DistributionModel(0, 0)
-    # streak = 0
-    # ii = 0
-    # while True:
-    #     ii = ii + 1
-    #     data = input("Enter winloss, turnover :")
-    #     data = data.split(" ")
-    #     turnover = float(data[1])
-    #     winloss = float(data[0])
-    #     # print("turnover = " + str(turnover), "winloss = " + str(winloss), sep = "\n")
-    #     margin = winloss/turnover
-    #     if streak == 0:
-    #         if margin > 0:
-    #             streak = 1
-    #         else:
-    #             streak = -1
-    #     else:
-    #         if margin*streak > 0:
-    #             streak = streak + int(margin/abs(margin))
-    #         else:
-    #             streak = int(margin/abs(margin))
-    #     delta_a, delta_b = Utilities.compute_deltas(margin, streak, 1)
-    #     cus.update_hyper_params(delta_a, delta_b)
-    #     mode = cus.get_mode()
-    #     print("a = {0} | b = {1}".format(cus.a, cus.b))
-    #     print("Mode After {0} days = {1} | Streak = {2}".format(ii, mode, streak))
-    name = "Diego"
-    age = 27
-    # message = "Hello My name is %s . I am %s years old" % (name, age)
-    message = "Hello My name is %s . I am %s years old" % name, age
-    print(message)
+    location = "D:/Project/Robot/TRAIN_DATA/"
+    train_path = "robotTicket_0415_0531_2021.csv"
+    # test_path = "robotTicket_06_14_2021_03_08_10.csv"
+    # saving_location = 
+
+    data = pd.read_csv(location + train_path, skiprows = [1], skipfooter = 1)
+    dates = data.winlostdate.unique()
+    dates = sorted(dates)
+    # train_dates = dates[:-15]
+    # for day in tqdm(train_dates, desc="Train"):
+    for day in tqdm(dates, desc="Break"):
+        df = data[data.winlostdate == day]
+        day = day.split(" ")[0]
+        df.to_csv(location + "breaking_files/" + day + ".csv", index = False)
+    
+    # test_data = pd.read_csv(location + test_path, skiprows = [1], skipfooter = 1)
+    # test_dates = test_data.winlostdate.unique()
+    # test_dates = dates[-15:]
+    # for day in tqdm(test_dates, desc="Test"):
+    #     df = data[data.winlostdate == day]
+    #     df.to_csv("/home/vnteam/Robot/TEST_DATA/" + day + ".csv", index = False)
 
