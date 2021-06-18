@@ -1,6 +1,7 @@
+from Utilities.File_Manager import File_Manager
 from scipy.stats import shapiro
 from scipy.stats.distributions import norm
-# from Utilities.utils import Utilities
+from sklearn.metrics import accuracy_score
 from Model.distribution_model import DistributionModel
 # from DataAccess.database_interaction import DB_Interaction
 from DataAccess.DataAccessConnection import spu_aiml
@@ -84,7 +85,7 @@ class PredictionController():
             return is_predict_win
 
 
-    def process_prediction_phase(collection_of_boundaries, concat_df, amplitude, PID, winning_threshold):
+    def process_prediction_phase(concat_df, PID, winning_threshold, amplitude = 1, collection_of_boundaries = None):
         # concat_df['Today_Margin'] = concat_df['TestingUserWinloss']/concat_df['IBCTurnover']
         concat_df['STR'] = 1
         mydf = pd.DataFrame()
@@ -92,11 +93,11 @@ class PredictionController():
         mydf['CAT'] = concat_df['CAT']
         # mydf['AD'] = concat_df['AD'] + 1
         # concat_df['temp_output1'] = concat_df.apply(lambda z : PredictionController.validate_predictable_mode(z['M'], z['CAT'], collection_of_boundaries), axis = 1)
-        mydf['IP'] = 1 #concat_df['temp_output1'].apply(lambda z : z[0])
+        mydf['IP'] = 0 #concat_df['temp_output1'].apply(lambda z : z[0])
         mydf['IPW'] = concat_df["IPW"] # concat_df['temp_output1'].apply(lambda z : z[1])
         # mydf['IPW'] = concat_df['temp_output1'].apply(lambda z : random.randint(0,1))
         # concat_df['temp_output2'] = concat_df.apply(lambda z : PredictionController.update_training_results_for_a_singleton(z['SWD'], z['SLD'], z['STR'], z['Today_Margin'], amplitude), axis = 1)
-        mydf['M'] = concat_df["M"]  # concat_df['temp_output2'].apply(lambda z : z[0])
+        mydf['M'] = 0.5  # concat_df['temp_output2'].apply(lambda z : z[0])
         mydf['SWD'] = concat_df["TestingPositiveWinlossPerDay"]  # concat_df['temp_output2'].apply(lambda z : z[1])
         mydf['SLD'] = concat_df["TestingNegativeWinlossPerDay"] #concat_df['temp_output2'].apply(lambda z : z[2])
         mydf['STR'] = 1 # concat_df['temp_output2'].apply(lambda z : int(z[3]))
@@ -115,8 +116,10 @@ class PredictionController():
         mydf["IPTW"] = mydf.apply(lambda z : PredictionController.is_truth_win_after_consideration(z["IPW"],
                                                                                                     z["IsPredictionWrong"]),
                                                                                                 axis = 1)
+        y_true = mydf.IPTW
+        y_pred = mydf.IPW
         mydf['PID'] = PID
-        # print("mydf\n", mydf)
+        print("accuracy_score = ", str(accuracy_score(y_true, y_pred)))
         return mydf
 
     def make_predictions_right_after_training_phase(cat_cus_couple_dataframe, config, day, PID): # result_of_the_day_before
@@ -179,30 +182,33 @@ class PredictionController():
             dba_results = BaseDA.execute("SPU_AIML_InsertWinlossPrediction", spu_aiml, ip_param, connection_spu)
         return mydf
 
-    def get_answer_from_test_data(test_data, config, PID, test_date, prediction_results):
-        print("prediction_results\n", prediction_results.head())
+    def get_answer_from_test_data(test_data, config, PID, test_date):
+        # print("prediction_results\n", prediction_results.head())
         # num_days = test_data.ReportDate.unique()
-        # for day in tqdm(num_days, desc = "Prediction"):
-        #     daily_test_data = test_data[test_data.ReportDate == day]
-            # print("daily_test_data\n", daily_test_data.head())
+        file_name = str(PID) + ".csv"
+        prediction_results = File_Manager.read_data(config.prediction_results_folder, file_name, is_entire = 1)
         concat_df = test_data.merge(prediction_results, how = 'inner', left_on = ['C', 'CAT'], right_on = ['C', 'CAT'])
-        # print("concat_df\n", concat_df.head())
-        collection_of_boundaries, concat_df = PredictionController.validate_training_results(concat_df, config)
-        answer_and_next_prediction = PredictionController.process_prediction_phase(collection_of_boundaries, concat_df, config.amplitude, 
-                                                                                    PID, config.default_mean + config.default_std)
-        answer_and_next_prediction_full_info_list = answer_and_next_prediction.to_dict(orient = 'records')
+        concat_df = concat_df[concat_df.IP == 1]
+        print("concat_df = " + str(concat_df.shape))
+        # collection_of_boundaries, concat_df = PredictionController.validate_training_results(test_data, config)
+        answers = PredictionController.process_prediction_phase(concat_df, PID, config.default_mean + config.default_std)
+        print("answers\n", answers.head())
+        print("answers = " + str(answers.shape))                                                                
+        answers_full_info_list = answers.to_dict(orient = 'records')
         # DB_Interaction.insert_to_PredictedResults_table(answer_and_next_prediction_full_info_list, test_date, config, right_after_prediction = 0)
         # DB_Interaction.insert_to_TrainingResults_table(predict_full_info_list, day, config, is_training_phase = 0)
         # print(f"======================================{day} DONE=======================================")
         # print("concat_df\n", concat_df.head())
         # print("Number of C-CAT\n", concat_df.groupby(["C", "CAT"]).first().reset_index().shape)
-        # concat_df.to_csv(f"D:/Project/Robot/TRANSFORMED_DATA/predictions_24_V8_30_{PID}.csv", index = False)
-        chunks = [answer_and_next_prediction_full_info_list[x:x + config.chunk_size] for x in \
-                    range(0, len(answer_and_next_prediction_full_info_list), config.chunk_size)]
+        answers.to_csv(f"D:/Project/Robot/TRANSFORMED_DATA/accuracy_testing.csv", index = False)
+        chunks = [answers_full_info_list[x:x + config.chunk_size] for x in \
+                    range(0, len(answers_full_info_list), config.chunk_size)]
         # DB_Interaction.insert_to_PredictedResults_table(predict_full_info_list_right_after_training, day, config)
         # print("mydf\n", mydf.head())
+
         connection_spu = DataAccessConnection(spu_aiml)
         for chunk in chunks:
+            print("LENGTH OF CHUNK = " + str(len(chunk)))
             chunk = json.dumps(chunk)
             ip_param = SPU_InsertWinlossPredictionDAModel(chunk, test_date)
-            dba_results = BaseDA.execute("SPU_AIML_InsertWinlossPrediction", spu_aiml, ip_param, connection_spu)
+            BaseDA.execute("SPU_AIML_InsertWinlossPrediction", spu_aiml, ip_param, connection_spu)

@@ -5,11 +5,12 @@ import os
 class File_Manager():
 
     @staticmethod
-    def read_data(location, file_name, is_entire = 1, length_of_assessment = None, start_date = None):
+    def read_data(location, file_name, is_entire = 1, length_of_assessment = None, start_date = None, index_col = None):
         
         try:
             if is_entire:
-                data =  pd.read_csv(location + file_name)
+                data =  pd.read_csv(location + file_name, index_col = index_col)
+                # print("is_entire = %s" % is_entire, "data\n", data.head(), sep = "\n")
             else:
                 list_files = sorted(os.listdir(location))
                 start_file_index = list_files.index(start_date + ".csv")
@@ -28,9 +29,9 @@ class File_Manager():
         except IndexError:
             data = None
         except AttributeError:
-            data =  pd.read_csv(location + file_name)
+            data =  pd.read_csv(location + file_name, index_col = index_col)
         return data
     
     @staticmethod
-    def save_data(location, file_name, dataframe):
-        dataframe.to_csv(location + file_name, index = False)
+    def save_data(location, file_name, dataframe, get_index = False):
+        dataframe.to_csv(location + file_name, index = get_index)

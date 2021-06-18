@@ -1,5 +1,10 @@
 import os
 import json
+import pickle
+import logging
+import time
+import datetime
+import pandas as pd
 from Utilities.Category_Mapping_Manager import Category_Mapping_Manager
 from Utilities.File_Manager import File_Manager
 from Utilities.Data_Preprocessing_Manager import Data_Preprocessing_Manager
@@ -12,31 +17,31 @@ from DataAccess.Model.SPU_AIML.SPU_InsertTrainResultsDAModel import SPU_InsertTr
 from DataAccess.DataAccessConnection import DataAccessConnection
 from DataAccess.CoreDA.BaseDA import BaseDA
 from Helper.notify import Telegram_send_message
-import logging
-import time
-from datetime import datetime
 
-# config.ENV = 'LOCAL'
 logging.basicConfig(filename = config.save_dir_log + config.log_name, level = logging.INFO)
 agree_to_send_message = config.agree_to_send_message
 
 class RobotClassificationTasks():
 
-    def start(PID, land_mark, released_answer_date):
+    def start(PID, land_mark, is_training):
         try:
-            start_running = time.time()
-            now = datetime.now()
+            # start_running = time.time()
+            now = datetime.datetime.now()
             current_time = now.strftime("%d/%m/%Y %H:%M:%S")
-            message = "%s | %s | INFO | Robot Classfication has just started" % (config.app_name, config.ENV)
-            print(f"========================================= PID = {PID} | {current_time} | Predict for {land_mark} =====================================================================")
-            print(f"========================================= released_answer_date {released_answer_date} =====================================================================")
+            if is_training:
+                message = "%s | %s | INFO | Robot Classfication | Predictions making for %s has just started" % (config.app_name, config.ENV, land_mark)
+                print(f"========================================= PID = {PID} | {current_time} | Predict for {land_mark} =====================================================================")
+                logging.info(f"========================================= PID = {PID} | {current_time} | Predict for {land_mark} =====================================================================")
+
+            else:
+                message = "%s | %s | INFO | Robot Classfication |  Answers for %s have been collected" % (config.app_name, config.ENV, land_mark)
+                print(f"========================================= PID = {PID} | {current_time} | released_answer_date {land_mark} =====================================================================")
+                logging.info(f"========================================= PID = {PID} | {current_time} | released_answer_date {land_mark} =====================================================================")
             print(message)
-            logging.info(f"========================================= PID = {PID} | {current_time} | Predict for {land_mark} =====================================================================")
-            logging.info(f"========================================= released_answer_date {released_answer_date} =====================================================================")
             logging.info(message)
             if agree_to_send_message:
                 Telegram_send_message(message)
-            return start_running
+            # return start_running
         except Exception as e:
             message = "%s | %s | ERROR | start function : %s %s" % (config.app_name, config.ENV, type(e).__name__, e.args)
             print(message)
@@ -228,6 +233,23 @@ class RobotClassificationTasks():
             if agree_to_send_message:
                 Telegram_send_message(message)
             raise ValueError
+
+    @staticmethod
+    def save_prediction_results(prediction_results, PID):
+        try:
+            start = time.time()
+            file_name = str(PID) + ".csv"
+            File_Manager.save_data(config.prediction_results_folder, file_name, prediction_results)
+            message = "%s | %s | INFO | save_prediction_results %.2f seconds" % (config.app_name, config.ENV, time.time() - start)
+            print(message)
+            logging.info(message)
+        except Exception as e:
+            message = "%s | %s | ERROR | save_prediction_results function : %s %s" % (config.app_name, config.ENV, type(e).__name__, e.args)
+            print(message)
+            logging.error(message)
+            if agree_to_send_message:
+                Telegram_send_message(message)
+            raise ValueError
     
     @staticmethod
     def read_cat_cus_couple_dataframe():
@@ -262,12 +284,12 @@ class RobotClassificationTasks():
             if agree_to_send_message:
                 Telegram_send_message(message)
             raise ValueError
-        # return output
+        
     
-    def get_answer_from_test_data(preprocessed_test_data, start_running, PID, test_date, prediction_results):
+    def get_answer_from_test_data(preprocessed_test_data, start_running, PID, test_date):
         try:
             start = time.time()
-            PredictionController.get_answer_from_test_data(preprocessed_test_data, config, PID, test_date, prediction_results)
+            PredictionController.get_answer_from_test_data(preprocessed_test_data, config, PID, test_date)
             message = "%s | %s | INFO | preprocess_test_data_and_make_predictions %.2f seconds" % (config.app_name, config.ENV, time.time() - start)
             print(message)
             logging.info(message)
@@ -284,29 +306,91 @@ class RobotClassificationTasks():
                 Telegram_send_message(message)
             raise ValueError
     
-    # def truncate_TrainResults_table():
-    #     try:
-    #         start = time.time()
-    #         DB_Interaction.truncate_TrainResults_table(config)
-    #         message = "%s | truncate_TrainResults_table %.2f seconds" % (config.ENV, time.time() - start)
-    #         print(message)
-    #         logging.info(message)
-    #         if agree_to_send_message:
-    #             Telegram_send_message(message)
-    #     except Exception as e:
-    #         message = "%s | truncate_TrainResults_table | %s : %s" % (config.ENV, type(e).__name__, e.args)
-    #         print(message)
-    #         logging.error(message)
-    #         if agree_to_send_message:
-    #             Telegram_send_message(message)
-    #         raise ValueError
-    
+    def get_land_marks(is_training):
+        try:
+            start = time.time()
+            try:
+                if is_training:
+                    # with open(config.date_to_PID_folder + config.date_to_PID_file_name, "rb") as f:
+                    predict_date_to_PID = File_Manager.read_data(config.date_to_PID_folder, config.date_to_PID_file_name, is_entire = 1, index_col = 0)
+                    # predict_date_to_PID = predict_date_to_PID.set_index("predict_date")
+                    predict_date_to_PID = predict_date_to_PID.PID.to_dict()
+                    print("predict_date_to_PID = " + str(predict_date_to_PID))
+                    max_PID = max(predict_date_to_PID.values())
+                else:
+                    with open(config.predicted_date_folder + config.predicted_date_file_name, "rb") as f:
+                        predicted_dates = pickle.load(f)
+            except FileNotFoundError:
+                if is_training:
+                    predict_date_to_PID = {}
+                    max_PID = -1
+                else:
+                    predicted_dates = []
+            finally:
+                list_of_files = sorted(os.listdir(config.train_data_folder_with_breaking_files))
+                if is_training:
+                    # index_of_land_mark = list_of_files.index(land_mark + ".csv")
+                    gap = len(list_of_files) - config.length_of_training
+                    try:
+                        mile_stone = list_of_files[config.length_of_training - 1]
+                    except IndexError:
+                        print("Lack of data | Total files = " + str(len(list_of_files)))
+                        raise IndexError
+                    mile_stone = mile_stone.replace(".csv", "")
+                    # assert prep_land_marks != []
+                    land_marks = {}
+                    datetime_object = datetime.datetime.strptime(mile_stone, '%Y-%m-%d')
+                    for day_delta in range(1, gap + 2):
+                        # land_mark = land_mark.replace(".csv", "")
+                        land_mark = datetime_object + datetime.timedelta(days = day_delta)
+                        land_mark = land_mark.strftime('%Y-%m-%d')
+                        if land_mark not in predict_date_to_PID:                   
+                            max_PID = max_PID + 1
+                            predict_date_to_PID[land_mark] = max_PID
+                            land_marks[max_PID] = land_mark
+                    predict_date_to_PID = pd.DataFrame(predict_date_to_PID.values(), index = predict_date_to_PID.keys(), columns = ["PID"])
+                    File_Manager.save_data(config.date_to_PID_folder, config.date_to_PID_file_name, predict_date_to_PID, get_index = True)
+                else:
+                    # list_of_files = sorted(os.listdir(config.train_data_folder_with_breaking_files))
+                    prep_land_marks = list_of_files[config.length_of_training : - config.length_of_testing + 1]
+                    assert prep_land_marks != []
+                    land_marks = {}
+                    predict_date_to_PID = File_Manager.read_data(config.date_to_PID_folder, config.date_to_PID_file_name, is_entire = 1, index_col = 0)
+                    # print("predict_date_to_PID\n", predict_date_to_PID.head())
+                    predict_date_to_PID = predict_date_to_PID.PID.to_dict()
+                    print("predict_date_to_PID = " + str(predict_date_to_PID))
+                    for land_mark in prep_land_marks:
+                        if land_mark not in predicted_dates:
+                            # print("land_mark %s" % land_mark)
+                            # predict_date_to_PID[land_mark] = max_PID + 1
+                            land_mark = land_mark.replace(".csv", "")
+                            land_marks[predict_date_to_PID[land_mark]] = land_mark
+                            predicted_dates.append(land_mark)
+                    with open(config.predicted_date_folder + config.predicted_date_file_name, "wb") as f:
+                        pickle.dump(predicted_dates, f)
+                message = "%s | %s | INFO | Is_Training = %s | get_land_marks %s %.2f seconds" % (config.app_name, config.ENV, is_training, str(land_marks), time.time() - start)
+                print(message)
+                logging.info(message)
+                if agree_to_send_message:
+                    Telegram_send_message(message)
+                return land_marks
+        except Exception as e:
+            message = "%s | %s | ERROR | Is_Training = %s | get_land_marks function : %s %s" % (config.app_name, config.ENV, is_training, type(e).__name__, e.args)
+            print(message)
+            logging.error(message)
+            if agree_to_send_message:
+                Telegram_send_message(message)
+            raise ValueError
+
     def get_start_date_of_training(land_mark):
         try:
             start = time.time()
             list_of_files = sorted(os.listdir(config.train_data_folder_with_breaking_files))
+            datetime_object = datetime.datetime.strptime(land_mark, '%Y-%m-%d')
+            land_mark = datetime_object - datetime.timedelta(days = 1)
+            land_mark = land_mark.strftime('%Y-%m-%d')
             index_of_land_mark = list_of_files.index(land_mark + ".csv")
-            start_date_of_training_index = index_of_land_mark - config.length_of_training
+            start_date_of_training_index = index_of_land_mark - config.length_of_training + 1
             start_date_of_training = list_of_files[start_date_of_training_index].replace(".csv", "")
             message = "%s | %s | INFO | get_start_date %s %.2f seconds" % (config.app_name, config.ENV, start_date_of_training, time.time() - start)
             print(message)

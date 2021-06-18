@@ -35,6 +35,16 @@ class SystemConfig(object):
             self.config, 'DEFAULT', 'CATEGORY_MAPPING_FOLDER')
         self.category_mapping_file_name = self.getDataStrConfig(
             self.config, 'DEFAULT', 'CATEGORY_MAPPING_FILE_NAME')
+        self.date_to_PID_folder = self.getDataStrConfig(
+            self.config, 'DEFAULT', 'DATE_TO_PID_FOLDER')
+        self.date_to_PID_file_name = self.getDataStrConfig(
+            self.config, 'DEFAULT', 'DATE_TO_PID_FILE_NAME')
+        self.predicted_date_folder = self.getDataStrConfig(
+            self.config, 'DEFAULT', 'PREDICTED_DATE_FOLDER')
+        self.predicted_date_file_name = self.getDataStrConfig(
+            self.config, 'DEFAULT', 'PREDICTED_DATE_FILE_NAME')
+        self.prediction_results_folder = self.getDataStrConfig(
+            self.config, 'DEFAULT', 'PREDICTION_RESULTS_FOLDER')
         self.day_eliminated_category_mapping_file_name = self.getDataStrConfig(
             self.config, 'DEFAULT', 'DAY_ELIMINATED_CATEGORY_MAPPING_FILE_NAME')
         self.day_and_live_indicator_eliminated_category_mapping_file_name = self.getDataStrConfig(

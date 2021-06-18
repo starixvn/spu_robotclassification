@@ -112,8 +112,8 @@ class TrainingModelController():
             margin_array = win_loss_array / turn_over_array
 
             # round 1 filter
-            filtered_margin_array =  margin_array[margin_array != 0]
-            outstanding_TO_array = outstanding_TO_array[margin_array != 0]
+            filtered_margin_array =  margin_array #margin_array[margin_array != 0]
+            outstanding_TO_array = outstanding_TO_array #outstanding_TO_array[margin_array != 0]
 
             # round 2 filter
             # if len(filtered_margin_array) >= threshold_activ_days :

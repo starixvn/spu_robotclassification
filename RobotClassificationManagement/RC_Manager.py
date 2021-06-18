@@ -1,44 +1,31 @@
+import time
 from RobotClassificationManagement.robot_classification_tasks import RobotClassificationTasks
 
 class RC_Manager():
 
     @staticmethod
-    def run():
+    def get_predictions(is_day_eliminated = 1, is_live_indicator_eliminated = 0, is_bettype_eliminated = 0, is_entire = 0):
 
-        land_marks = ["2021-05-" + str(x).zfill(2) for x in range(15, 32, 1)]
+        start_running = time.time()
 
-        # land_marks = ["2021-05-15", "2021-05-16", "2021-05-17"]
+        str_to_id, id_to_str = RobotClassificationTasks.transform_category_mapping(is_day_eliminated = is_day_eliminated, 
+                                                                                    is_live_indicator_eliminated = is_live_indicator_eliminated,
+                                                                                    is_bettype_eliminated = is_bettype_eliminated)
 
-        land_marks = sorted(land_marks)
+        land_marks = RobotClassificationTasks.get_land_marks(is_training = True)
 
-        is_day_eliminated = 1
-        is_live_indicator_eliminated = 0
-        is_bettype_eliminated = 0
-        is_entire = 0
-        # PID = 0
+        # print("land_marks\n", land_marks)
 
-        print("land_marks\n", land_marks)
+        for PID, predict_date in land_marks.items():
 
-        for idx, land_mark in enumerate(land_marks):
+            RobotClassificationTasks.start(PID, predict_date, is_training = True)
 
-            # if idx + 1 >= len(land_marks):
-            #     continue
-            PID = idx
-            predict_date = land_mark
-            # test_date = land_marks[idx + 1]
-
-            start_running = RobotClassificationTasks.start(PID, predict_date, predict_date)
-
-            str_to_id, id_to_str = RobotClassificationTasks.transform_category_mapping(is_day_eliminated = is_day_eliminated, 
-                                                                                        is_live_indicator_eliminated = is_live_indicator_eliminated,
-                                                                                        is_bettype_eliminated = is_bettype_eliminated)
-
-            start_date_of_training = RobotClassificationTasks.get_start_date_of_training(land_mark)
+            start_date_of_training = RobotClassificationTasks.get_start_date_of_training(predict_date)
 
             data, _ = RobotClassificationTasks.read_and_preprocess_data(str_to_id, is_training = 1, is_aggregated = 0, is_entire = is_entire, 
-                                                                                        start_date = start_date_of_training, is_day_eliminated = is_day_eliminated,
-                                                                                        is_live_indicator_eliminated = is_live_indicator_eliminated,
-                                                                                        is_bettype_eliminated = is_bettype_eliminated)
+                                                                        start_date = start_date_of_training, is_day_eliminated = is_day_eliminated,
+                                                                        is_live_indicator_eliminated = is_live_indicator_eliminated,
+                                                                        is_bettype_eliminated = is_bettype_eliminated)
 
             features_df = RobotClassificationTasks.transform_data(data, str_to_id, id_to_str)
         
@@ -56,13 +43,26 @@ class RC_Manager():
 
             prediction_results = RobotClassificationTasks.make_predictions_right_after_training_phase(cat_cus_couple_dataframe, predict_date, PID)
 
+            RobotClassificationTasks.save_prediction_results(prediction_results, PID)
+        
+        return start_running
+
+    @staticmethod
+    def get_answer(start_running, is_day_eliminated = 1, is_live_indicator_eliminated = 0, is_bettype_eliminated = 0, is_entire = 0):
+
+        str_to_id, _ = RobotClassificationTasks.transform_category_mapping(is_day_eliminated = is_day_eliminated, 
+                                                                            is_live_indicator_eliminated = is_live_indicator_eliminated,
+                                                                            is_bettype_eliminated = is_bettype_eliminated)
+        
+        land_marks = RobotClassificationTasks.get_land_marks(is_training = False)
+
+        for PID, land_mark in land_marks.items():
+
+            RobotClassificationTasks.start(PID, land_mark, is_training = False)
+
             test_data, test_date = RobotClassificationTasks.read_and_preprocess_data(str_to_id, is_training = 0, is_aggregated = 1, is_entire = is_entire, 
                                                                                     start_date = land_mark, is_day_eliminated = is_day_eliminated, 
                                                                                     is_live_indicator_eliminated = is_live_indicator_eliminated,
                                                                                     is_bettype_eliminated = is_bettype_eliminated)
-            if test_data is None:
-                continue
-            else:
-                RobotClassificationTasks.get_answer_from_test_data(test_data, start_running, PID, test_date, prediction_results)
-
-            # RobotClassificationTasks.truncate_TrainResults_table()
+            
+            RobotClassificationTasks.get_answer_from_test_data(test_data, start_running, PID, test_date)

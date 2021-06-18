@@ -117,7 +117,7 @@ class Data_Preprocessing_Manager():
         else:
             
             the_finalized = merged.groupby(['C', 'CAT', 'ReportDate']).sum().reset_index()
-            the_finalized = the_finalized[(the_finalized.UserWinloss != 0) & (the_finalized.BetCount >= min_bet_count)]
+            # the_finalized = the_finalized[(the_finalized.UserWinloss != 0) & (the_finalized.BetCount >= min_bet_count)]
             # the_finalized = the_finalized[the_finalized.UserWinloss != 0]
             the_finalized.to_csv(f"D:/Project/Robot/TEST_DATA/preprocessed_{phase}.csv", index = False)
             # the_finalized = the_finalized[(the_finalized.C == 13515302) & (the_finalized.CAT == 2)]
