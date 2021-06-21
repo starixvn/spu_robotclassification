@@ -26,7 +26,7 @@ class File_Manager():
             data['ReportDate'] = data['ReportDate'].apply(lambda z : z.split(' ')[0])
             print("HEAD of data\n", data.head())
             print("TAIL of data\n", data.tail())
-        except IndexError:
+        except (IndexError, FileNotFoundError):
             data = None
         except AttributeError:
             data =  pd.read_csv(location + file_name, index_col = index_col)

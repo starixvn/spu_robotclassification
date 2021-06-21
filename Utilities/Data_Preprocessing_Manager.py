@@ -113,13 +113,13 @@ class Data_Preprocessing_Manager():
             # print("NegativeWinlossActiveDays = " + str(the_finalized.NegativeWinlossActiveDays.unique()))
             print(phase + "ActiveDays = " + str(the_finalized[phase + "ActiveDays"].unique()))
             # index_reseted = index_reseted[(index_reseted.UserWinloss != 0) & (index_reseted.BetCount >= min_bet_count)]
-            the_finalized.to_csv(f"D:/Project/Robot/TEST_DATA/agg_{phase}.csv", index=False)
+            # the_finalized.to_csv(f"D:/Project/Robot/TEST_DATA/agg_{phase}.csv", index=False)
         else:
             
             the_finalized = merged.groupby(['C', 'CAT', 'ReportDate']).sum().reset_index()
             # the_finalized = the_finalized[(the_finalized.UserWinloss != 0) & (the_finalized.BetCount >= min_bet_count)]
             # the_finalized = the_finalized[the_finalized.UserWinloss != 0]
-            the_finalized.to_csv(f"D:/Project/Robot/TEST_DATA/preprocessed_{phase}.csv", index = False)
+            # the_finalized.to_csv(f"D:/Project/Robot/TEST_DATA/preprocessed_{phase}.csv", index = False)
             # the_finalized = the_finalized[(the_finalized.C == 13515302) & (the_finalized.CAT == 2)]
             # print("TAIL of the_finalized\n", the_finalized.tail(10))
         return the_finalized

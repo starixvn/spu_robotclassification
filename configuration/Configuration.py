@@ -96,8 +96,8 @@ class SystemConfig(object):
             self.config, 'ROBOTCONFIG', 'DEFAULT_MEAN'))
         self.default_std = float(self.getDataStrConfig(
             self.config, 'ROBOTCONFIG', 'DEFAULT_STD'))
-        self.test_dead_line = self.getDataStrConfig(
-            self.config, 'ROBOTCONFIG', 'TEST_DEAD_LINE')
+        # self.test_dead_line = self.getDataStrConfig(
+        #     self.config, 'ROBOTCONFIG', 'TEST_DEAD_LINE')
         self.min_bet_count_training = int(self.getDataStrConfig(
             self.config, 'ROBOTCONFIG', 'MIN_BET_COUNT_TRAINING'))
         self.min_bet_count_testing = int(self.getDataStrConfig(

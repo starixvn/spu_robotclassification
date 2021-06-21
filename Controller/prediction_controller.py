@@ -200,7 +200,7 @@ class PredictionController():
         # print(f"======================================{day} DONE=======================================")
         # print("concat_df\n", concat_df.head())
         # print("Number of C-CAT\n", concat_df.groupby(["C", "CAT"]).first().reset_index().shape)
-        answers.to_csv(f"D:/Project/Robot/TRANSFORMED_DATA/accuracy_testing.csv", index = False)
+        # answers.to_csv(f"D:/Project/Robot/TRANSFORMED_DATA/accuracy_testing.csv", index = False)
         chunks = [answers_full_info_list[x:x + config.chunk_size] for x in \
                     range(0, len(answers_full_info_list), config.chunk_size)]
         # DB_Interaction.insert_to_PredictedResults_table(predict_full_info_list_right_after_training, day, config)

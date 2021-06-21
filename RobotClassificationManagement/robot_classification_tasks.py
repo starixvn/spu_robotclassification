@@ -32,7 +32,6 @@ class RobotClassificationTasks():
                 message = "%s | %s | INFO | Robot Classfication | Predictions making for %s has just started" % (config.app_name, config.ENV, land_mark)
                 print(f"========================================= PID = {PID} | {current_time} | Predict for {land_mark} =====================================================================")
                 logging.info(f"========================================= PID = {PID} | {current_time} | Predict for {land_mark} =====================================================================")
-
             else:
                 message = "%s | %s | INFO | Robot Classfication |  Answers for %s have been collected" % (config.app_name, config.ENV, land_mark)
                 print(f"========================================= PID = {PID} | {current_time} | released_answer_date {land_mark} =====================================================================")
@@ -76,7 +75,7 @@ class RobotClassificationTasks():
             raise ValueError
     
     def read_and_preprocess_data(str_to_id, is_training, is_entire = 1, start_date = None, is_aggregated = 0, 
-                                is_day_eliminated = 0, is_live_indicator_eliminated = 0, is_bettype_eliminated = 0):
+                                is_day_eliminated = 1, is_live_indicator_eliminated = 0, is_bettype_eliminated = 0):
         try:
             start = time.time()
             if is_training:
@@ -306,98 +305,88 @@ class RobotClassificationTasks():
                 Telegram_send_message(message)
             raise ValueError
     
-    def get_land_marks(is_training):
+    def get_land_marks():
         try:
             start = time.time()
-            try:
-                if is_training:
-                    # with open(config.date_to_PID_folder + config.date_to_PID_file_name, "rb") as f:
-                    predict_date_to_PID = File_Manager.read_data(config.date_to_PID_folder, config.date_to_PID_file_name, is_entire = 1, index_col = 0)
-                    # predict_date_to_PID = predict_date_to_PID.set_index("predict_date")
-                    predict_date_to_PID = predict_date_to_PID.PID.to_dict()
-                    print("predict_date_to_PID = " + str(predict_date_to_PID))
-                    max_PID = max(predict_date_to_PID.values())
-                else:
-                    with open(config.predicted_date_folder + config.predicted_date_file_name, "rb") as f:
-                        predicted_dates = pickle.load(f)
-            except FileNotFoundError:
-                if is_training:
-                    predict_date_to_PID = {}
-                    max_PID = -1
-                else:
-                    predicted_dates = []
+            try:               
+                # with open(config.date_to_PID_folder + config.date_to_PID_file_name, "rb") as f:
+                predict_date_to_PID = File_Manager.read_data(config.date_to_PID_folder, config.date_to_PID_file_name, is_entire = 1, index_col = 0)
+                # predict_date_to_PID = predict_date_to_PID.set_index("predict_date")
+                predict_date_to_PID = predict_date_to_PID.PID.to_dict()
+                print("predict_date_to_PID = " + str(predict_date_to_PID))
+                max_PID = max(predict_date_to_PID.values())
+            except AttributeError:               
+                predict_date_to_PID = {}
+                max_PID = -1
+                
             finally:
                 list_of_files = sorted(os.listdir(config.train_data_folder_with_breaking_files))
-                if is_training:
-                    # index_of_land_mark = list_of_files.index(land_mark + ".csv")
-                    gap = len(list_of_files) - config.length_of_training
-                    try:
-                        mile_stone = list_of_files[config.length_of_training - 1]
-                    except IndexError:
-                        print("Lack of data | Total files = " + str(len(list_of_files)))
-                        raise IndexError
-                    mile_stone = mile_stone.replace(".csv", "")
-                    # assert prep_land_marks != []
-                    land_marks = {}
-                    datetime_object = datetime.datetime.strptime(mile_stone, '%Y-%m-%d')
-                    for day_delta in range(1, gap + 2):
-                        # land_mark = land_mark.replace(".csv", "")
-                        land_mark = datetime_object + datetime.timedelta(days = day_delta)
-                        land_mark = land_mark.strftime('%Y-%m-%d')
-                        if land_mark not in predict_date_to_PID:                   
-                            max_PID = max_PID + 1
-                            predict_date_to_PID[land_mark] = max_PID
-                            land_marks[max_PID] = land_mark
-                    predict_date_to_PID = pd.DataFrame(predict_date_to_PID.values(), index = predict_date_to_PID.keys(), columns = ["PID"])
-                    File_Manager.save_data(config.date_to_PID_folder, config.date_to_PID_file_name, predict_date_to_PID, get_index = True)
-                else:
-                    # list_of_files = sorted(os.listdir(config.train_data_folder_with_breaking_files))
-                    prep_land_marks = list_of_files[config.length_of_training : - config.length_of_testing + 1]
-                    assert prep_land_marks != []
-                    land_marks = {}
-                    predict_date_to_PID = File_Manager.read_data(config.date_to_PID_folder, config.date_to_PID_file_name, is_entire = 1, index_col = 0)
-                    # print("predict_date_to_PID\n", predict_date_to_PID.head())
-                    predict_date_to_PID = predict_date_to_PID.PID.to_dict()
-                    print("predict_date_to_PID = " + str(predict_date_to_PID))
-                    for land_mark in prep_land_marks:
-                        if land_mark not in predicted_dates:
-                            # print("land_mark %s" % land_mark)
-                            # predict_date_to_PID[land_mark] = max_PID + 1
-                            land_mark = land_mark.replace(".csv", "")
-                            land_marks[predict_date_to_PID[land_mark]] = land_mark
-                            predicted_dates.append(land_mark)
-                    with open(config.predicted_date_folder + config.predicted_date_file_name, "wb") as f:
-                        pickle.dump(predicted_dates, f)
-                message = "%s | %s | INFO | Is_Training = %s | get_land_marks %s %.2f seconds" % (config.app_name, config.ENV, is_training, str(land_marks), time.time() - start)
+                # index_of_land_mark = list_of_files.index(land_mark + ".csv")
+                gap = len(list_of_files) - config.length_of_training
+                try:
+                    mile_stone = list_of_files[config.length_of_training - 1]
+                except IndexError:
+                    print("Lack of data | Total files = " + str(len(list_of_files)))
+                    raise IndexError
+                mile_stone = mile_stone.replace(".csv", "")
+                # assert prep_land_marks != []
+                land_marks = {}
+                datetime_object = datetime.datetime.strptime(mile_stone, '%Y-%m-%d')
+                for day_delta in range(1, gap + 2):
+                    # land_mark = land_mark.replace(".csv", "")
+                    land_mark = datetime_object + datetime.timedelta(days = day_delta)
+                    land_mark = land_mark.strftime('%Y-%m-%d')
+                    if land_mark not in predict_date_to_PID:                   
+                        max_PID = max_PID + 1
+                        predict_date_to_PID[land_mark] = max_PID
+                        # land_marks[max_PID] = land_mark
+                        land_marks[land_mark] = max_PID
+                predict_date_to_PID = pd.DataFrame(predict_date_to_PID.values(), index = predict_date_to_PID.keys(), columns = ["PID"])
+                File_Manager.save_data(config.date_to_PID_folder, config.date_to_PID_file_name, predict_date_to_PID, get_index = True)
+                message = "%s | %s | INFO | get_land_marks %s %.2f seconds" % (config.app_name, config.ENV, str(land_marks), time.time() - start)
                 print(message)
                 logging.info(message)
                 if agree_to_send_message:
                     Telegram_send_message(message)
                 return land_marks
         except Exception as e:
-            message = "%s | %s | ERROR | Is_Training = %s | get_land_marks function : %s %s" % (config.app_name, config.ENV, is_training, type(e).__name__, e.args)
+            message = "%s | %s | ERROR | get_land_marks function : %s %s" % (config.app_name, config.ENV, type(e).__name__, e.args)
             print(message)
             logging.error(message)
             if agree_to_send_message:
                 Telegram_send_message(message)
             raise ValueError
 
-    def get_start_date_of_training(land_mark):
+    def get_start_date(land_mark, is_training = True):
         try:
-            start = time.time()
+            # start = time.time()
             list_of_files = sorted(os.listdir(config.train_data_folder_with_breaking_files))
             datetime_object = datetime.datetime.strptime(land_mark, '%Y-%m-%d')
             land_mark = datetime_object - datetime.timedelta(days = 1)
             land_mark = land_mark.strftime('%Y-%m-%d')
             index_of_land_mark = list_of_files.index(land_mark + ".csv")
-            start_date_of_training_index = index_of_land_mark - config.length_of_training + 1
-            start_date_of_training = list_of_files[start_date_of_training_index].replace(".csv", "")
-            message = "%s | %s | INFO | get_start_date %s %.2f seconds" % (config.app_name, config.ENV, start_date_of_training, time.time() - start)
+            if is_training:
+                start_date_index = index_of_land_mark - config.length_of_training + 1
+                start_date = list_of_files[start_date_index].replace(".csv", "")
+                PID = -1
+            else:
+                start_date_index = index_of_land_mark - config.length_of_testing + 1
+                predict_date_to_PID = File_Manager.read_data(config.date_to_PID_folder, config.date_to_PID_file_name, is_entire = 1, index_col = 0)
+                # predict_date_to_PID = predict_date_to_PID.set_index("predict_date")
+                predict_date_to_PID = predict_date_to_PID.PID.to_dict()
+                try:
+                    file_name = list_of_files[start_date_index]
+                    start_date = file_name.replace(".csv", "")
+                    PID = predict_date_to_PID[start_date]                   
+                except KeyError:
+                    start_date = None
+                    PID = None
+            message = "%s | %s | INFO | get_start_date %s | is_training = %s | PID = %s" % (config.app_name, config.ENV, start_date, is_training, PID)
             print(message)
             logging.info(message)
             if agree_to_send_message:
                 Telegram_send_message(message)
-            return start_date_of_training
+            return start_date, PID
         except Exception as e:
             message = "%s | %s | ERROR | get_start_date function : %s %s" % (config.app_name, config.ENV, type(e).__name__, e.args)
             print(message)
