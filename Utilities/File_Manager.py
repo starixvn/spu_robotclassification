@@ -16,6 +16,7 @@ class File_Manager():
                 start_file_index = list_files.index(start_date + ".csv")
                 end_file = list_files[start_file_index + length_of_assessment - 1]
                 list_target_files = list_files[start_file_index:start_file_index + length_of_assessment]
+                print("list_target_files = " + str(list_target_files))
                 data = pd.concat([pd.read_csv(location + fn) for fn in tqdm(list_target_files, desc = "Concat Files")], ignore_index = True)
             max_train_date = data.winlostdate.max()
             data.rename(columns = {"winlostdate":"ReportDate",
@@ -24,8 +25,8 @@ class File_Manager():
                                     "bettype":"BettypeId",
                                     "liveindicator":"IsLive"}, inplace = True)
             data['ReportDate'] = data['ReportDate'].apply(lambda z : z.split(' ')[0])
-            print("HEAD of data\n", data.head())
-            print("TAIL of data\n", data.tail())
+            print("HEAD of data\n", data.head(1))
+            print("TAIL of data\n", data.tail(1))
         except (IndexError, FileNotFoundError):
             data = None
         except AttributeError:

@@ -59,16 +59,16 @@ class Data_Preprocessing_Manager():
         merger[phase + winloss_sign + "WinlossPerDay"] = merger[phase + winloss_sign + "UserWinloss"]/merger[phase + winloss_sign + "ActiveDays"]
         return merger
     
-    def preprocess_data(data, str_to_id, is_training, is_aggregated = 0, dead_line = None, min_bet_count = 10, 
-                        is_day_eliminated = 0, is_live_indicator_eliminated = 0, is_bettype_eliminated = 0):
-        if is_training:
-            phase = "Training"
-        else:
-            phase = "Testing"
+    @staticmethod
+    def prepare_data(data):
         data = data[data.BettypeId.isin([1, 3, 7, 8])]
         yourdata = data[['ReportDate', 'CustId', 'IBCWinloss', 'IBCTurnover', 'BetCount']]
         yourdata['UserWinloss'] = - yourdata['IBCWinloss']
         yourdata.rename(columns = {'CustId':'C'}, inplace = True)
+        return yourdata
+
+    @staticmethod
+    def build_column_Category_ID(data, str_to_id, is_day_eliminated, is_live_indicator_eliminated, is_bettype_eliminated):
         mydata = pd.DataFrame()
         mydata['SporttypeId'] = data['SporttypeId'].apply(Data_Preprocessing_Manager.transform_sport_type) # mydata['SporttypeId']
         
@@ -87,17 +87,27 @@ class Data_Preprocessing_Manager():
             mydata['Day'] = data['ReportDate'].apply(Data_Preprocessing_Manager.is_weekend) # mydata['Day']
             mydata['Category_in_short'] = mydata['SporttypeId'] + mydata['BettypeId'] + mydata['IsLive'] + mydata['Day']
         mydata['CAT'] = mydata['Category_in_short'].apply(lambda z : str_to_id[z]['CategoryID'])
+        return mydata
 
+    @staticmethod   
+    def preprocess_data(data, str_to_id, is_training, is_aggregated, dead_line, is_day_eliminated, min_bet_count,
+                         is_live_indicator_eliminated, is_bettype_eliminated,):
+
+        yourdata = Data_Preprocessing_Manager.prepare_data(data)
+        mydata = Data_Preprocessing_Manager.build_column_Category_ID(data, str_to_id, is_day_eliminated, 
+                                                                    is_live_indicator_eliminated, is_bettype_eliminated)
         merged = pd.merge(yourdata, mydata, right_index = True, left_index = True)
-        if is_aggregated:
-            # index_reseted = merged.groupby(['C', 'CAT']).sum().reset_index()
-            
+
+        if is_training:
+            phase = "Training"
+        else:
+            phase = "Testing"
+
+        if is_aggregated:            
             positive_winloss = merged[merged.UserWinloss > 0]
             positive_merger = Data_Preprocessing_Manager.aggregate(positive_winloss, winloss_sign = "Positive", phase = phase)            
-            # print("positive_merger\n", positive_merger.head())
             negative_winloss = merged[merged.UserWinloss < 0]
             negative_merger = Data_Preprocessing_Manager.aggregate(negative_winloss, winloss_sign = "Negative", phase = phase)
-            # print("negative_merger\n", negative_merger.head())
             the_finalized = positive_merger.merge(negative_merger, how = "outer", on = ["C", "CAT"])
             the_finalized['ReportDate'] = dead_line
             the_finalized = the_finalized.fillna(0)
@@ -109,17 +119,9 @@ class Data_Preprocessing_Manager():
                                                     the_finalized[phase + "PositiveUserWinloss"]
             the_finalized[phase + "BetCount"] = the_finalized[phase + "NegativeBetCount"] + \
                                                 the_finalized[phase + "PositiveBetCount"]
-            # print("the_finalized\n", the_finalized.head())
-            # print("NegativeWinlossActiveDays = " + str(the_finalized.NegativeWinlossActiveDays.unique()))
+            the_finalized = the_finalized[the_finalized[phase + "BetCount"] >= min_bet_count]
             print(phase + "ActiveDays = " + str(the_finalized[phase + "ActiveDays"].unique()))
-            # index_reseted = index_reseted[(index_reseted.UserWinloss != 0) & (index_reseted.BetCount >= min_bet_count)]
-            # the_finalized.to_csv(f"D:/Project/Robot/TEST_DATA/agg_{phase}.csv", index=False)
-        else:
-            
+        else:          
             the_finalized = merged.groupby(['C', 'CAT', 'ReportDate']).sum().reset_index()
-            # the_finalized = the_finalized[(the_finalized.UserWinloss != 0) & (the_finalized.BetCount >= min_bet_count)]
-            # the_finalized = the_finalized[the_finalized.UserWinloss != 0]
-            # the_finalized.to_csv(f"D:/Project/Robot/TEST_DATA/preprocessed_{phase}.csv", index = False)
-            # the_finalized = the_finalized[(the_finalized.C == 13515302) & (the_finalized.CAT == 2)]
-            # print("TAIL of the_finalized\n", the_finalized.tail(10))
+            the_finalized = the_finalized[the_finalized["BetCount"] >= min_bet_count]
         return the_finalized
