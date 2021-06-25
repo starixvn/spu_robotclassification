@@ -1,3 +1,6 @@
+USE SPU_AIML;
+
+DROP TABLE TrainResults;
 CREATE TABLE `TrainResults` (
   `CustID` bigint unsigned NOT NULL,
   `CategoryID` tinyint unsigned NOT NULL,
@@ -17,7 +20,7 @@ CREATE TABLE `TrainResults` (
   KEY `IX_TrainResults_HyperParamsID` (`HyperParamsID` DESC)
 ) ENGINE=InnoDB;
 
-
+DROP TABLE WinlossPrediction;
 CREATE TABLE `WinlossPrediction` (
   `CustID` bigint unsigned NOT NULL,
   `CategoryID` tinyint unsigned NOT NULL,
@@ -31,4 +34,4 @@ CREATE TABLE `WinlossPrediction` (
   `IsTruthWin` bit(1) DEFAULT NULL,
   PRIMARY KEY (`CustID`,`CategoryID`,`PredictDate`,`HyperParamsID`),
   KEY `IX_WinlossPrediction_HyperParamsID` (`HyperParamsID` DESC)
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;

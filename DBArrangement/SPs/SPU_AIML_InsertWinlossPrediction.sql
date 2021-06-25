@@ -27,6 +27,26 @@ BEGIN
         GET DIAGNOSTICS CONDITION 1 op_ErrorMessage = MESSAGE_TEXT;
     END;
     
+    DROP TEMPORARY TABLE IF EXISTS Temp_PredictionStats;    
+	CREATE TEMPORARY TABLE Temp_PredictionStats 
+    (	 
+			CustID						BIGINT UNSIGNED	NOT NULL
+		, 	CategoryID					TINYINT UNSIGNED NOT NULL
+        ,	HyperParamsID				SMALLINT UNSIGNED
+        ,	PredictDate					DATETIME
+		, 	Counter						SMALLINT UNSIGNED
+        , 	PRIMARY KEY	    PK_Temp_PredictionStats(CustID,CategoryID,HyperParamsID) 
+    );      
+    
+    DROP TEMPORARY TABLE IF EXISTS Temp_PredictionStats_Cloned;    
+	CREATE TEMPORARY TABLE Temp_PredictionStats_Cloned 
+    (	 
+			CustID						BIGINT UNSIGNED	NOT NULL
+		, 	CategoryID					TINYINT UNSIGNED NOT NULL
+        ,	HyperParamsID				SMALLINT UNSIGNED
+        , 	PRIMARY KEY	    PK_Temp_PredictionStats_Cloned(CustID,CategoryID,HyperParamsID) 
+    );      
+    
     DROP TEMPORARY TABLE IF EXISTS Temp_PredictionData;    
 	CREATE TEMPORARY TABLE Temp_PredictionData 
     (	 
@@ -64,7 +84,35 @@ BEGIN
             , IsPreviousTruthWin	BIT					PATH "$.IPTW"
             , HyperParamsID			SMALLINT UNSIGNED 	PATH "$.PID"
 		 )) AS tmpTable;  
-            
+	
+    INSERT INTO Temp_PredictionStats(CustID, CategoryID, HyperParamsID, PredictDate)
+    SELECT a.CustID, a.CategoryID, MAX(a.HyperParamsID), MAX(a.PredictDate)
+    FROM SPU_AIML.WinlossPrediction AS a
+		INNER JOIN Temp_PredictionData AS t ON t.CustID = a.CustID AND t.CategoryID = a.CategoryID
+	GROUP BY a.CustID, a.CategoryID;
+    
+    INSERT INTO Temp_PredictionStats_Cloned(CustID, CategoryID, HyperParamsID)
+    SELECT a.CustID, a.CategoryID, a.HyperParamsID
+    FROM Temp_PredictionStats AS a;
+    
+    SET SQL_SAFE_UPDATES = 0;
+    UPDATE Temp_PredictionStats AS t
+		INNER JOIN (SELECT a.CustID, a.CategoryID, a.HyperParamsID, COUNT(1) AS Counter
+					FROM Temp_PredictionStats_Cloned AS t1
+						INNER JOIN SPU_AIML.WinlossPrediction AS a 
+							ON t1.CustID = a.CustID AND t1.CategoryID = a.CategoryID AND t1.HyperParamsID = a.HyperParamsID
+					GROUP BY a.CustID, a.CategoryID, a.HyperParamsID)
+                    AS v ON t.CustID = v.CustID AND t.CategoryID = v.CategoryID AND t.HyperParamsID = v.HyperParamsID
+    SET 	t.Counter = v.Counter;
+
+	DELETE d
+	FROM Temp_PredictionStats AS t
+		INNER JOIN Temp_PredictionData AS d ON t.CustID = d.CustID AND t.CategoryID = d.CategoryID
+    WHERE t.Counter = 1 
+		AND ((d.IsPreviousTruthWin IS NULL AND DATE_ADD(t.PredictDate, INTERVAL 15 DAY) > ip_ScanDate)
+			OR (d.IsPreviousTruthWin IS NOT NULL AND DATE_ADD(t.PredictDate, INTERVAL 14 DAY) > ip_ScanDate)
+            );
+ 
 	INSERT IGNORE INTO SPU_AIML.WinlossPrediction(CustID, CategoryID, PredictDate, `Mode`, SuspiciousWinDay, SuspiciousLoseDay, IsPrediction, IsPredictWin, HyperParamsID)
 	SELECT 	t.CustID
 		, 	t.CategoryID
@@ -77,7 +125,6 @@ BEGIN
         ,	t.HyperParamsID
     FROM Temp_PredictionData AS t;
 	
-    SET SQL_SAFE_UPDATES = 0;
     UPDATE SPU_AIML.WinlossPrediction AS a
 		INNER JOIN Temp_PredictionData AS t ON t.CustID = a.CustID AND t.CategoryID = a.CategoryID AND t.HyperParamsID = a.HyperParamsID
     SET 	a.IsTruthWin = t.IsPreviousTruthWin
