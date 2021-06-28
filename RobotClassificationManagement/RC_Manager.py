@@ -6,30 +6,35 @@ class RC_Manager():
     @staticmethod
     def run(is_day_eliminated = 1, is_live_indicator_eliminated = 0, is_bettype_eliminated = 0, is_entire = 0):
 
-        start_running = time.time()
+        # start_running = time.time()
 
         str_to_id, id_to_str = RobotClassificationTasks.transform_category_mapping(is_day_eliminated = is_day_eliminated, 
-                                                                                    is_live_indicator_eliminated = is_live_indicator_eliminated,
-                                                                                    is_bettype_eliminated = is_bettype_eliminated)
+                                                                        is_live_indicator_eliminated = is_live_indicator_eliminated,
+                                                                        is_bettype_eliminated = is_bettype_eliminated)
 
         land_marks = RobotClassificationTasks.get_land_marks()
 
-        # print("land_marks\n", land_marks)
-
         for predict_date, PID in land_marks.items():
-            _ = RC_Manager.get_answers(predict_date, str_to_id, start_running, is_entire)
-            # if start_date_of_answer is None:
-            RC_Manager.get_predictions(predict_date, PID, str_to_id, id_to_str, is_entire)
+            _ = RC_Manager.get_answers(predict_date, str_to_id, is_entire, 
+                                        is_day_eliminated, is_live_indicator_eliminated, is_bettype_eliminated)
+            RC_Manager.get_predictions(predict_date, PID, str_to_id, id_to_str, is_entire, 
+                                        is_day_eliminated, is_live_indicator_eliminated, is_bettype_eliminated)
+        
+        # RobotClassificationTasks.finish(start_running)
    
     @staticmethod
-    def get_predictions(predict_date, PID, str_to_id, id_to_str, is_entire):
+    def get_predictions(predict_date, PID, str_to_id, id_to_str, is_entire, is_day_eliminated, 
+                        is_live_indicator_eliminated, is_bettype_eliminated):
 
-        RobotClassificationTasks.start(PID, predict_date, is_training = True)
+        start_running = RobotClassificationTasks.start(PID, predict_date, is_training = True)
 
         start_date_of_training, _ = RobotClassificationTasks.get_start_date(predict_date)
 
         data, _ = RobotClassificationTasks.read_and_preprocess_data(str_to_id, is_training = 1, is_aggregated = 0, is_entire = is_entire, 
-                                                                    start_date = start_date_of_training)
+                                                                    start_date = start_date_of_training, 
+                                                                    is_day_eliminated = is_day_eliminated, 
+                                                                    is_live_indicator_eliminated = is_live_indicator_eliminated, 
+                                                                    is_bettype_eliminated = is_bettype_eliminated)
 
         features_df = RobotClassificationTasks.transform_data(data, str_to_id, id_to_str)
     
@@ -45,23 +50,27 @@ class RC_Manager():
 
         cat_cus_couple_dataframe = RobotClassificationTasks.read_cat_cus_couple_dataframe()
 
-        prediction_results = RobotClassificationTasks.make_predictions_right_after_training_phase(cat_cus_couple_dataframe, predict_date, PID)
+        prediction_results = RobotClassificationTasks.make_predictions_right_after_training_phase(cat_cus_couple_dataframe, predict_date, PID, start_running)
 
         RobotClassificationTasks.save_prediction_results(prediction_results, PID)
     
     @staticmethod
-    def get_answers(predict_date, str_to_id, start_running, is_entire):
+    def get_answers(predict_date, str_to_id, is_entire, is_day_eliminated, 
+                    is_live_indicator_eliminated, is_bettype_eliminated):
 
         start_date_of_answer, PID = RobotClassificationTasks.get_start_date(predict_date, is_training = False)
 
-        RobotClassificationTasks.start(PID, start_date_of_answer, is_training = False)
+        start_running = RobotClassificationTasks.start(PID, start_date_of_answer, is_training = False)
 
         if start_date_of_answer is None:
             return None
         else:
             test_data, test_date = RobotClassificationTasks.read_and_preprocess_data(str_to_id, is_training = 0, is_aggregated = 1, is_entire = is_entire, 
-                                                                                    start_date = start_date_of_answer)
+                                                                                    start_date = start_date_of_answer,
+                                                                                    is_day_eliminated = is_day_eliminated, 
+                                                                                    is_live_indicator_eliminated = is_live_indicator_eliminated, 
+                                                                                    is_bettype_eliminated = is_bettype_eliminated)
             
-            RobotClassificationTasks.get_answer_from_test_data(test_data, start_running, PID, test_date)
+            RobotClassificationTasks.get_answer_from_test_data(test_data, PID, test_date, start_date_of_answer, start_running)
 
             return start_date_of_answer

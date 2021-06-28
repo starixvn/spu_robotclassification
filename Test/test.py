@@ -1,11 +1,11 @@
 # String = "1,3,8"
 # Lyst = String.split(',')
 # print('Lyst\n',Lyst)
-# import sys
-# sys.path.append("C:/Users/diego.nguyen/diegoProj/RobotClassification")
+import sys
+sys.path.append("C:/Users/diego.nguyen/diegoProj/RobotClassification")
 # from Model.distribution_model import DistributionModel
 # import random
-# from Helper.utils import Utilities
+from Utilities.File_Manager import File_Manager
 import pandas as pd
 # import numpy as np
 # import json
@@ -19,7 +19,7 @@ import pandas as pd
 # from Helper.data_transformer import DataTransformer
 # from Helper.notify import Telegram_send_message
 from tqdm import tqdm
-# from RobotClassificationManagement.robot_classification_manager import RobotClassificationManager
+from RobotClassificationManagement.robot_classification_tasks import RobotClassificationTasks
 # ENV = 'LOCAL'
 # systemConfig = SystemConfig(ENV.lower() + '_' + "config.ini", ENV)
 # def print_key(key):
@@ -28,21 +28,32 @@ from tqdm import tqdm
 #         a = 1/0
 #     except ZeroDivisionError:
 #         return None
-if __name__=='__main__':
-    location = "D:/Project/Robot/TRAIN_DATA/"
-    train_path = "robotTicket_0415_0531_2021.csv"
-    # test_path = "robotTicket_06_14_2021_03_08_10.csv"
-    # saving_location = 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
-    data = pd.read_csv(location + train_path, skiprows = [1], skipfooter = 1)
-    dates = data.winlostdate.unique()
-    dates = sorted(dates)
+if __name__=='__main__':
+    location = "D:/Project/Robot/TRAIN_DATA/breaking_files/"
+    # train_path = "robotTicket_0415_0531_2021.csv"
+    # test_path = "robotTicket_06_14_2021_03_08_10.csv"
+    saving_location =  "D:/Project/Robot/TRANSFORMED_DATA/"
+
+    # data = File_Manager.read_data(location, None, 0, 30, "2021-04-15")
+    # data = RobotClassificationTasks.read_and_preprocess_data()
+    # File_Manager.save_data(saving_location, "train.csv", data, 0)
     # train_dates = dates[:-15]
     # for day in tqdm(train_dates, desc="Train"):
-    for day in tqdm(dates, desc="Break"):
-        df = data[data.winlostdate == day]
-        day = day.split(" ")[0]
-        df.to_csv(location + "breaking_files/" + day + ".csv", index = False)
+    # for day in tqdm(dates, desc="Break"):
+    #     df = data[data.winlostdate == day]
+    #     day = day.split(" ")[0]
+    #     df.to_csv(location + "breaking_files/" + day + ".csv", index = False)
     
     # test_data = pd.read_csv(location + test_path, skiprows = [1], skipfooter = 1)
     # test_dates = test_data.winlostdate.unique()
@@ -50,4 +61,5 @@ if __name__=='__main__':
     # for day in tqdm(test_dates, desc="Test"):
     #     df = data[data.winlostdate == day]
     #     df.to_csv("/home/vnteam/Robot/TEST_DATA/" + day + ".csv", index = False)
+    print(f"{bcolors.FAIL}Warning: No active frommets remain. Continue?{bcolors.ENDC}")
 

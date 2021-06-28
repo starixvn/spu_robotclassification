@@ -57,7 +57,8 @@ class DistributionModel():
         plt.show()
     
     
-    def compute_deltas(self, margin, outstanding_TO_score, outstanding_BC_score, streak, amplitude):
+    def compute_deltas(self, margin, outstanding_TO_score, outstanding_BC_score, 
+                        internal_BC_score, internal_TO_score, streak, amplitude):
         """
         >>> Input   :   margin      , a float number in range[-1,1]
                         streak      , an integer
@@ -67,10 +68,13 @@ class DistributionModel():
         if abs(margin) > 1:
             margin = int(margin/abs(margin))
         if margin > 0:
-            # return amplitude*margin*(1 + outstanding_TO_score*abs(streak)), 0 
             return amplitude*(margin+2*outstanding_TO_score)/3*(1 + (streak - 1)/10), 0
+            # return amplitude*(margin+outstanding_TO_score+outstanding_BC_score+internal_TO_score)/3, 0
+            # return amplitude*(margin+2*outstanding_TO_score+outstanding_BC_score)/4*(1 + (streak - 1)/10), 0
         else:
-            return 0, amplitude*(abs(margin)+2*outstanding_TO_score)/3*(1 + (abs(streak) - 1)/10) # 
+            return 0, amplitude*(abs(margin)+2*outstanding_TO_score)/3*(1 + (abs(streak) - 1)/10)
+            # return 0, amplitude*(abs(margin)+outstanding_TO_score+outstanding_BC_score+internal_TO_score)/3
+            # return 0, amplitude*(abs(margin)+2*outstanding_TO_score+outstanding_BC_score)/4*(1 + (abs(streak) - 1)/10)
 
     def get_mode(self):
         try :

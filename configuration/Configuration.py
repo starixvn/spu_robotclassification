@@ -84,6 +84,10 @@ class SystemConfig(object):
         # define Robot config
         self.chunk_size = int(self.getDataStrConfig(
             self.config, 'ROBOTCONFIG', 'CHUNK_SIZE'))
+        self.observed_mode = int(self.getDataStrConfig(
+            self.config, 'ROBOTCONFIG', 'OBSERVED_MODE'))
+        self.is_raw = int(self.getDataStrConfig(
+            self.config, 'ROBOTCONFIG', 'IS_RAW'))
         self.is_hard_classified = int(self.getDataStrConfig(
             self.config, 'ROBOTCONFIG', 'IS_HARD_CLASSIFIED'))
         self.day_threshold = int(self.getDataStrConfig(

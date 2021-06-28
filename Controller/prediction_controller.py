@@ -3,7 +3,7 @@ from scipy.stats import shapiro
 from scipy.stats.distributions import norm
 from sklearn.metrics import accuracy_score
 from Model.distribution_model import DistributionModel
-# from DataAccess.database_interaction import DB_Interaction
+from Utilities.BColors import BColors
 from DataAccess.DataAccessConnection import spu_aiml
 from DataAccess.Model.SPU_AIML.SPU_GetTrainResultsDAModel import SPU_GetTrainResultsDAModel
 from DataAccess.Model.SPU_AIML.SPU_InsertWinlossPredictionDAModel import SPU_InsertWinlossPredictionDAModel
@@ -85,7 +85,7 @@ class PredictionController():
             return is_predict_win
 
 
-    def process_prediction_phase(concat_df, PID, winning_threshold, amplitude = 1, collection_of_boundaries = None):
+    def process_prediction_phase(concat_df, PID, winning_threshold, is_raw, amplitude = 1, collection_of_boundaries = None):
         # concat_df['Today_Margin'] = concat_df['TestingUserWinloss']/concat_df['IBCTurnover']
         concat_df['STR'] = 1
         mydf = pd.DataFrame()
@@ -101,7 +101,11 @@ class PredictionController():
         mydf['SWD'] = concat_df["TestingPositiveWinlossPerDay"]  # concat_df['temp_output2'].apply(lambda z : z[1])
         mydf['SLD'] = concat_df["TestingNegativeWinlossPerDay"] #concat_df['temp_output2'].apply(lambda z : z[2])
         mydf['STR'] = 1 # concat_df['temp_output2'].apply(lambda z : int(z[3]))
-        mydf['IsPredictionWrong'] = concat_df.apply(lambda z : PredictionController.is_prediction_wrong(
+        if is_raw:
+            mydf["IPTW"] = concat_df["TestingUserWinloss"].apply(lambda z: 1 if z > 0 else 0)
+        else:
+            print("CONSIDERATION HAS BEEN AVAILABLE !!!!")
+            mydf['IsPredictionWrong'] = concat_df.apply(lambda z : PredictionController.is_prediction_wrong(
                                                                                                     z['SLD']
                                                                                                     ,z['TestingNegativeWinlossPerDay']
                                                                                                     ,z['SWD']
@@ -111,15 +115,13 @@ class PredictionController():
                                                                                                     ,winning_threshold
                                                                                                     ),
                                                 axis = 1)
-        # mydf['IPTW'] = concat_df['Today_Margin'].apply(lambda z : 1 if z > 0 else 0)
-        # mydf = mydf[mydf.IsPredictionWrong != -1]
-        mydf["IPTW"] = mydf.apply(lambda z : PredictionController.is_truth_win_after_consideration(z["IPW"],
-                                                                                                    z["IsPredictionWrong"]),
-                                                                                                axis = 1)
+            mydf["IPTW"] = mydf.apply(lambda z : PredictionController.is_truth_win_after_consideration(z["IPW"],
+                                                                                                        z["IsPredictionWrong"]),
+                                                                                                    axis = 1)
         y_true = mydf.IPTW
         y_pred = mydf.IPW
         mydf['PID'] = PID
-        print("accuracy_score = ", str(accuracy_score(y_true, y_pred)))
+        print(str(BColors.WARNING) + "accuracy_score = " + str(accuracy_score(y_true, y_pred)) + str(BColors.ENDC))
         return mydf
 
     def make_predictions_right_after_training_phase(cat_cus_couple_dataframe, config, day, PID): # result_of_the_day_before
@@ -146,12 +148,7 @@ class PredictionController():
         # print("AFTER | history_training_results_data\n", history_training_results_data.head())
         # history_training_results_data.to_csv(config.transformed_data_folder + "history_training_results_data.csv", index = False)
         merged_df = pd.merge(history_training_results_data, cat_cus_couple_dataframe, on = ['C', 'CAT'], how = 'inner')
-        # merged_df = pd.merge(result_of_the_day_before, sub_test_data, on = ['C', 'CAT'])
-        # answer = merged_df.to_dict(orient = 'records')
-        # DB_Interaction.insert_to_PredictedResults_table(answer, day, config)
-        # merged_df.to_csv(config.transformed_data_folder + "diego1.csv", index=False)
-        # print("make_predictions_right_after_training_phase | merged_df\n", merged_df.head(), "merged_df shape" + str(merged_df.shape), sep = "\n")
-        # merged_df['UserWinloss'].fillna(0, inplace=True)
+        
         mydf = pd.DataFrame()
         mydf['C'] = merged_df['C']
         mydf['CAT'] = merged_df['CAT']
@@ -161,8 +158,12 @@ class PredictionController():
         # merged_df['temp_output1'] = merged_df.apply(lambda z : PredictionController.validate_predictable_mode(z['M'], z['CAT'], collection_of_boundaries), axis = 1)
         # mydf['IP'] = merged_df['temp_output1'].apply(lambda z : z[0])
         winning_threshold = config.default_mean + config.default_std
-        print("HEAD of merged_df\n",merged_df.head())
-        mydf['IP'] = merged_df.apply(lambda z : 1 if (z["M"] - winning_threshold)*z["AccWL"] > 0 else 0, axis = 1)
+        print("HEAD of merged_df\n",merged_df.head(3))
+        if config.observed_mode:
+            mydf['IP'] = merged_df.apply(lambda z : 1 if (z["M"] - winning_threshold)*z["AccWL"] > 0 else 0, axis = 1)
+        else:
+            mydf['IP'] = merged_df.apply(lambda z : 1 if z["M"] > winning_threshold or z["M"] < 1 - winning_threshold \
+                                        else 0, axis = 1)
         # mydf['IPW'] = merged_df['temp_output1'].apply(lambda z : z[1])
         mydf['IPW'] = merged_df['M'].apply(lambda z : 1 if z >= winning_threshold else 0)
         # mydf['IPTW'] = merged_df['UserWinloss']
@@ -191,7 +192,8 @@ class PredictionController():
         concat_df = concat_df[concat_df.IP == 1]
         print("concat_df = " + str(concat_df.shape))
         # collection_of_boundaries, concat_df = PredictionController.validate_training_results(test_data, config)
-        answers = PredictionController.process_prediction_phase(concat_df, PID, config.default_mean + config.default_std)
+        answers = PredictionController.process_prediction_phase(concat_df, PID, 
+                                                                config.default_mean + config.default_std, config.is_raw)
         print("answers\n", answers.head())
         print("answers = " + str(answers.shape))                                                                
         answers_full_info_list = answers.to_dict(orient = 'records')
