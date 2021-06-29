@@ -6,7 +6,7 @@ class RC_Manager():
     @staticmethod
     def run(is_day_eliminated = 1, is_live_indicator_eliminated = 0, is_bettype_eliminated = 0, is_entire = 0):
 
-        # start_running = time.time()
+        RobotClassificationTasks.rename_file_and_clean_data()
 
         str_to_id, id_to_str = RobotClassificationTasks.transform_category_mapping(is_day_eliminated = is_day_eliminated, 
                                                                         is_live_indicator_eliminated = is_live_indicator_eliminated,
@@ -20,7 +20,7 @@ class RC_Manager():
             RC_Manager.get_predictions(predict_date, PID, str_to_id, id_to_str, is_entire, 
                                         is_day_eliminated, is_live_indicator_eliminated, is_bettype_eliminated)
         
-        # RobotClassificationTasks.finish(start_running)
+        RobotClassificationTasks.pop_a_file()
    
     @staticmethod
     def get_predictions(predict_date, PID, str_to_id, id_to_str, is_entire, is_day_eliminated, 

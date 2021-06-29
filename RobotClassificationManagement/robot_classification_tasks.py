@@ -27,6 +27,56 @@ class RobotClassificationTasks():
     # def __init__(config):
     #     config.config = config
     #     logging.basicConfig(filename = config.save_dir_log + config.log_name, level = logging.INFO)
+    def rename_file_and_clean_data():
+        try:
+            # start_running = time.time()
+            files = os.listdir(config.train_data_folder_with_breaking_files)
+            for fn in files:
+                if fn.startswith("robotTicket"):
+                    df = pd.read_csv(config.train_data_folder_with_breaking_files + fn, 
+                                    skipfooter = 1, skiprows = [1])
+                    mile_stone = fn.rsplit("_", 3)[0]
+                    mile_stone = mile_stone.split("_", 1)[1]
+                    datetime_object = datetime.datetime.strptime(mile_stone, "%m_%d_%Y")
+                    land_mark = datetime_object.strftime("%Y-%m-%d")
+                    df.to_csv(config.train_data_folder_with_breaking_files + land_mark + ".csv", index = False)
+                    os.rename(config.train_data_folder_with_breaking_files + fn,
+                                config.back_up_folder + fn)
+            message = "%s | %s | INFO | rename and clean data" % (config.app_name, config.ENV)
+            logging.info(message)
+            # if config.agree_to_send_message:
+            #     Telegram_send_message(message)
+            # return start_running
+        except Exception as e:
+            message = "%s | %s | ERROR | rename_file_and_clean_data function : %s %s" % (config.app_name, config.ENV, 
+                                                                                        type(e).__name__, e.args)
+            print(message)
+            logging.error(message)
+            if config.agree_to_send_message:
+                Telegram_send_message(message)
+            raise ValueError
+
+    def pop_a_file():
+        try:
+            # start_running = time.time()
+            files = os.listdir(config.train_data_folder_with_breaking_files)
+            files = sorted(files, reverse = True)
+            while len(files) > config.length_of_training:
+                popable_file = files.pop()
+                os.remove(config.train_data_folder_with_breaking_files + popable_file)
+            message = "%s | %s | INFO | pop a file successfully, number left = %s" % (config.app_name, config.ENV, len(files))
+            logging.info(message)
+            # if config.agree_to_send_message:
+            #     Telegram_send_message(message)
+            # return start_running
+        except Exception as e:
+            message = "%s | %s | ERROR | pop_a_file function : %s %s" % (config.app_name, config.ENV, 
+                                                                                        type(e).__name__, e.args)
+            print(message)
+            logging.error(message)
+            if config.agree_to_send_message:
+                Telegram_send_message(message)
+            raise ValueError
 
     def start(PID, land_mark, is_training):
         try:

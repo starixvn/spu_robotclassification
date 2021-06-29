@@ -5,7 +5,7 @@ import sys
 sys.path.append("C:/Users/diego.nguyen/diegoProj/RobotClassification")
 # from Model.distribution_model import DistributionModel
 # import random
-from Utilities.File_Manager import File_Manager
+#from Utilities.File_Manager import File_Manager
 import pandas as pd
 # import numpy as np
 # import json
@@ -17,9 +17,10 @@ import pandas as pd
 # from DataAccess.database_interaction import DB_Interaction
 # from Controller.prediction_controller import PredictionController
 # from Helper.data_transformer import DataTransformer
-# from Helper.notify import Telegram_send_message
+from Helper.notify import Telegram_send_message
 from tqdm import tqdm
-from RobotClassificationManagement.robot_classification_tasks import RobotClassificationTasks
+import datetime
+#from RobotClassificationManagement.robot_classification_tasks import RobotClassificationTasks
 # ENV = 'LOCAL'
 # systemConfig = SystemConfig(ENV.lower() + '_' + "config.ini", ENV)
 # def print_key(key):
@@ -28,7 +29,9 @@ from RobotClassificationManagement.robot_classification_tasks import RobotClassi
 #         a = 1/0
 #     except ZeroDivisionError:
 #         return None
-class bcolors:
+import os
+import shutil
+class BColors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKCYAN = '\033[96m'
@@ -38,12 +41,11 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-
 if __name__=='__main__':
-    location = "D:/Project/Robot/TRAIN_DATA/breaking_files/"
-    # train_path = "robotTicket_0415_0531_2021.csv"
+    arrival = "D:/Project/Robot/TRAIN_DATA/"
+    fn = "result_t6.csv"
     # test_path = "robotTicket_06_14_2021_03_08_10.csv"
-    saving_location =  "D:/Project/Robot/TRANSFORMED_DATA/"
+    saving_location =  "D:/Project/Robot/TRAIN_DATA/breaking_files/" 
 
     # data = File_Manager.read_data(location, None, 0, 30, "2021-04-15")
     # data = RobotClassificationTasks.read_and_preprocess_data()
@@ -55,11 +57,31 @@ if __name__=='__main__':
     #     day = day.split(" ")[0]
     #     df.to_csv(location + "breaking_files/" + day + ".csv", index = False)
     
-    # test_data = pd.read_csv(location + test_path, skiprows = [1], skipfooter = 1)
-    # test_dates = test_data.winlostdate.unique()
-    # test_dates = dates[-15:]
-    # for day in tqdm(test_dates, desc="Test"):
-    #     df = data[data.winlostdate == day]
-    #     df.to_csv("/home/vnteam/Robot/TEST_DATA/" + day + ".csv", index = False)
-    print(f"{bcolors.FAIL}Warning: No active frommets remain. Continue?{bcolors.ENDC}")
+    data = pd.read_csv(arrival +  fn, skiprows = [1], skipfooter = 1)
+    test_dates = data.winlostdate.unique()
+    # # test_dates = dates[-15:]
+    for day in tqdm(test_dates, desc="Test"):
+        df = data[data.winlostdate == day]
+        day = day.split(" ")[0]
+        df.to_csv(saving_location + day + ".csv", index = False)
+    # print(f"{bcolors.FAIL}Warning: No active frommets remain. Continue?{bcolors.ENDC}")
+
+    # land_marks = RobotClassificationTasks.get_land_marks()
+    # ls = os.listdir(departure)
+    # for fn in ls:
+    #     # os.rename(arrival + fn, departure + fn)
+    #     # if fn.startswith("robotTicket"):
+    #     if fn.startswith("2021-04") or fn.startswith("2021-05"):
+    #         os.rename(departure + fn, arrival + fn)
+            # mile_stone = fn.rsplit("_", 3)[0]
+            # mile_stone = mile_stone.split("_", 1)[1]
+            # datetime_object = datetime.datetime.strptime(mile_stone, "%m_%d_%Y")
+            # land_mark = datetime_object.strftime("%Y-%m-%d")
+            # shutil.copy(arrival + fn, departure + land_mark + ".csv")
+    # message = "Long's brother is setting up daily jobs for RC!"
+    # Telegram_send_message(message)
+    # a = [1,3,2]
+    # a = sorted(a, reverse = True)
+    # a.pop()
+    # print("a = %s" % len(a))
 

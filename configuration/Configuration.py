@@ -11,6 +11,8 @@ class SystemConfig(object):
         self.ENV = args[1]
 
         # define paths
+        self.back_up_folder = self.getDataStrConfig(
+            self.config, 'DEFAULT', 'BACK_UP_FOLDER')
         self.save_dir_log = self.getDataStrConfig(
             self.config, 'DEFAULT', 'SAVE_DIR_LOG')
         self.log_name = self.getDataStrConfig(
