@@ -4,15 +4,17 @@ from scipy.stats.distributions import norm
 from sklearn.metrics import accuracy_score
 from Model.distribution_model import DistributionModel
 from Utilities.BColors import BColors
-from DataAccess.DataAccessConnection import spu_aiml
+from DataAccess.DataAccessConnection import spu_aiml, cts_datacenter
 from DataAccess.Model.SPU_AIML.SPU_GetTrainResultsDAModel import SPU_GetTrainResultsDAModel
 from DataAccess.Model.SPU_AIML.SPU_InsertWinlossPredictionDAModel import SPU_InsertWinlossPredictionDAModel
+from DataAccess.Model.CTS_DataCenter.CTS_InsertRobotClassificationDAModel import CTS_InsertRobotClassificationDAModel
 from DataAccess.DataAccessConnection import DataAccessConnection
 from DataAccess.CoreDA.BaseDA import BaseDA
 from tqdm import tqdm
 import pandas as pd
 import json
 import warnings
+import datetime
 warnings.filterwarnings("ignore")
 
 import random
@@ -125,10 +127,14 @@ class PredictionController():
         return mydf
 
     def make_predictions_right_after_training_phase(cat_cus_couple_dataframe, config, day, PID): # result_of_the_day_before
-        # sub_test_data = test_data[['C', 'CAT', 'UserWinloss']]
-        # sub_test_data['UserWinloss'] = sub_test_data['UserWinloss'].apply(lambda z : 1 if z > 0 else 0)
-        # cat_cus_couple_dataframe, config, day = args
-        # history_training_results_data = DB_Interaction.get_from_TrainingResults_table(cat_cus_couple_dataframe, config, PID)
+
+        ### build from_Date, to_Date
+        from_Date = day
+        datetime_object = datetime.datetime.strptime(from_Date, '%Y-%m-%d')
+        to_Date = datetime_object + datetime.timedelta(days = config.length_of_testing - 1)
+        to_Date = to_Date.strftime('%Y-%m-%d')
+        ### =============================
+
         cat_cus_couple_dataframe = cat_cus_couple_dataframe.drop_duplicates()
         get_objects = cat_cus_couple_dataframe[["C", "CAT"]].to_dict(orient = 'records')
         jsonList = json.dumps(get_objects)
@@ -168,12 +174,14 @@ class PredictionController():
         mydf['IPW'] = merged_df['M'].apply(lambda z : 1 if z >= winning_threshold else 0)
         # mydf['IPTW'] = merged_df['UserWinloss']
         mydf['PID'] = PID
-        # history_training_results_data['temp_output1'] = history_training_results_data.apply(lambda z : PredictionController.validate_predictable_mode(z['M'], z['CAT'], collection_of_boundaries), axis = 1)
-        # history_training_results_data['IP'] = history_training_results_data['temp_output1'].apply(lambda z : z[0])
-        # history_training_results_data['IPW'] = history_training_results_data['temp_output1'].apply(lambda z : z[1])
-        # history_training_results_data['IPTW'] = history_training_results_data['UserWinloss']
-        # history_training_results_data['PID'] = PID
-        predict_full_info_list_right_after_training = mydf.to_dict(orient = 'records')
+        mydf['FD'] = from_Date
+        mydf['TD'] = to_Date
+        ### =========================================================================================
+
+        ### =========================================================================================
+        # if not config.is_test_insert_CTS:
+        data_SPU = mydf[["C", "CAT", "M", "SWD", "SLD", "IP", "IPW", "PID"]]
+        predict_full_info_list_right_after_training = data_SPU.to_dict(orient = 'records')
         chunks = [predict_full_info_list_right_after_training[x:x + config.chunk_size] for x in \
                     range(0, len(predict_full_info_list_right_after_training), config.chunk_size)]
         # print("mydf\n", mydf.head())
@@ -181,7 +189,23 @@ class PredictionController():
             chunk = json.dumps(chunk)
             ip_param = SPU_InsertWinlossPredictionDAModel(chunk, day)
             dba_results = BaseDA.execute("SPU_AIML_InsertWinlossPrediction", spu_aiml, ip_param, connection_spu)
-        return mydf
+        ### =========================================================================================
+
+        ### =========================================================================================
+        data_CTS = mydf[["C", "CAT", "FD", "TD", "IP", "IPW"]]
+        data_CTS = data_CTS.rename(columns={"CAT":"CID"})
+        predict_full_info_list_right_after_training = data_CTS.to_dict(orient = 'records')
+        chunks = [predict_full_info_list_right_after_training[x:x + config.chunk_size] for x in \
+                    range(0, len(predict_full_info_list_right_after_training), config.chunk_size)]
+        connection_cts = DataAccessConnection(cts_datacenter)
+        # ip_param = CTS_InsertRobotClassificationDAModel(jsonList, PID)
+        for chunk in chunks:
+            chunk = json.dumps(chunk)
+            ip_param = CTS_InsertRobotClassificationDAModel(chunk)
+            dba_results = BaseDA.execute("CTS_DC_RobotClassification_Insert", cts_datacenter, ip_param, connection_cts)
+        ### =========================================================================================
+
+        return data_SPU
 
     def get_answer_from_test_data(test_data, config, PID, test_date):
         # print("prediction_results\n", prediction_results.head())
@@ -209,6 +233,7 @@ class PredictionController():
         # print("mydf\n", mydf.head())
 
         connection_spu = DataAccessConnection(spu_aiml)
+        # if not config.is_test_insert_CTS:
         for chunk in chunks:
             print("LENGTH OF CHUNK = " + str(len(chunk)))
             chunk = json.dumps(chunk)

@@ -35,10 +35,12 @@ class RobotClassificationTasks():
                 if fn.startswith("robotTicket"):
                     df = pd.read_csv(config.train_data_folder_with_breaking_files + fn, 
                                     skipfooter = 1, skiprows = [1])
-                    mile_stone = fn.rsplit("_", 3)[0]
-                    mile_stone = mile_stone.split("_", 1)[1]
-                    datetime_object = datetime.datetime.strptime(mile_stone, "%m_%d_%Y")
-                    land_mark = datetime_object.strftime("%Y-%m-%d")
+                    # mile_stone = fn.rsplit("_", 3)[0]
+                    # mile_stone = mile_stone.split("_", 1)[1]
+                    # datetime_object = datetime.datetime.strptime(mile_stone, "%m_%d_%Y")
+                    # land_mark = datetime_object.strftime("%Y-%m-%d")
+                    land_mark = df.winlostdate.min()
+                    land_mark = land_mark.split(" ")[0]
                     df.to_csv(config.train_data_folder_with_breaking_files + land_mark + ".csv", index = False)
                     os.rename(config.train_data_folder_with_breaking_files + fn,
                                 config.back_up_folder + fn)

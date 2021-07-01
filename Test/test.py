@@ -10,7 +10,7 @@ import pandas as pd
 # import numpy as np
 # import json
 # from configuration.system_config import SystemConfig
-# from mysql.connector import MySQLConnection
+from mysql.connector import MySQLConnection
 # from scipy.stats import shapiro
 # from scipy.stats.distributions import norm
 # from datetime import date
@@ -31,6 +31,7 @@ import datetime
 #         return None
 import os
 import shutil
+import json
 class BColors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -42,10 +43,10 @@ class BColors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 if __name__=='__main__':
-    arrival = "D:/Project/Robot/TRAIN_DATA/"
-    fn = "result_t6.csv"
+    arrival = "/home/vndata4ai/RobotClassification/"
+    # fn = "result_t6.csv"
     # test_path = "robotTicket_06_14_2021_03_08_10.csv"
-    saving_location =  "D:/Project/Robot/TRAIN_DATA/breaking_files/" 
+    departure =  "/home/vnteam/Robot/BACK_UP/" 
 
     # data = File_Manager.read_data(location, None, 0, 30, "2021-04-15")
     # data = RobotClassificationTasks.read_and_preprocess_data()
@@ -57,31 +58,48 @@ if __name__=='__main__':
     #     day = day.split(" ")[0]
     #     df.to_csv(location + "breaking_files/" + day + ".csv", index = False)
     
-    data = pd.read_csv(arrival +  fn, skiprows = [1], skipfooter = 1)
-    test_dates = data.winlostdate.unique()
-    # # test_dates = dates[-15:]
-    for day in tqdm(test_dates, desc="Test"):
-        df = data[data.winlostdate == day]
-        day = day.split(" ")[0]
-        df.to_csv(saving_location + day + ".csv", index = False)
+    # data = pd.read_csv(file_path, skiprows = [1], skipfooter = 1)
+    # # day = "2021-06-1"
+    # print("head data\n", data.head())
+    # test_dates = data.winlostdate.unique()
+    # # # # test_dates = dates[-15:]
+    # for day in tqdm(test_dates, desc="Test"):
+    #     df = data[data.winlostdate == day]
+    #     day = day.split(" ")[0]
+    #     if day == "2021-05-30" or day == "2021-05-31":
+    #         print("day = %s" % day)
+    #         df.to_csv(arrival + day + ".csv", index = False)
     # print(f"{bcolors.FAIL}Warning: No active frommets remain. Continue?{bcolors.ENDC}")
 
     # land_marks = RobotClassificationTasks.get_land_marks()
-    # ls = os.listdir(departure)
-    # for fn in ls:
-    #     # os.rename(arrival + fn, departure + fn)
-    #     # if fn.startswith("robotTicket"):
-    #     if fn.startswith("2021-04") or fn.startswith("2021-05"):
-    #         os.rename(departure + fn, arrival + fn)
-            # mile_stone = fn.rsplit("_", 3)[0]
-            # mile_stone = mile_stone.split("_", 1)[1]
-            # datetime_object = datetime.datetime.strptime(mile_stone, "%m_%d_%Y")
-            # land_mark = datetime_object.strftime("%Y-%m-%d")
-            # shutil.copy(arrival + fn, departure + land_mark + ".csv")
+    ls = os.listdir(departure)
+    for fn in ls:
+        # os.rename(arrival + fn, departure + fn)
+        # if fn.startswith("robotTicket"):
+        # if fn.startswith("2021-04") or fn.startswith("2021-05"):
+        # os.rename(departure + fn, arrival + fn)
+        # mile_stone = fn.rsplit("_", 3)[0]
+        # mile_stone = mile_stone.split("_", 1)[1]
+        # datetime_object = datetime.datetime.strptime(mile_stone, "%m_%d_%Y")
+        # land_mark = datetime_object.strftime("%Y-%m-%d")
+        shutil.copy(departure + fn, arrival + fn)
     # message = "Long's brother is setting up daily jobs for RC!"
     # Telegram_send_message(message)
     # a = [1,3,2]
     # a = sorted(a, reverse = True)
     # a.pop()
     # print("a = %s" % len(a))
+    # conn = MySQLConnection(user = "ctsServiceAdmin", password = "ctsServiceAdmin@CTS2209#",
+    #                         host = "10.40.40.58", port = "3306", database = "CTS_DataCenter")
+    # # conn = MySQLConnection(user = "darius.vn", password = "1qaz@Wsx3edc",
+    # #                         host = "10.18.200.72", port = "3306", database = "CTS_DataCenter")
+    # cursor = conn.cursor()
+    # chunk = [{"C": 111, "CID": 23, "IP": 1, "IPW": 0, "FD": "2021-07-01", "TD": "2021-07-15"}]
+    # jsonList = json.dumps(chunk)
+    # _, out1 = cursor.callproc("CTS_DataCenter.CTS_DC_RobotClassification_Insert", [jsonList, None])
+    # if out1 is not None:
+    #     print(out1)
+    # conn.commit()
+    # cursor.close()
+    # conn.close()
 
