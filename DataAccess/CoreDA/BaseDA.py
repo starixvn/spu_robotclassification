@@ -7,7 +7,7 @@ from Configuration.Configuration import config
 from DataAccess.CoreDA.CommonDA import CommonDA
 from mysql.connector.pooling import MySQLConnectionPool
 from Utilities.Logging_Notifier import notify_logging
-
+from Helper.notify import Telegram_send_message
 
 class BaseDA(object):
     def call_sp(info_db,connection):
@@ -15,6 +15,7 @@ class BaseDA(object):
             sp_output = connection.cursor.callproc(info_db.sp, info_db.param())
             if sp_output[-1] != None:
                 notify_logging(info_db.output_sperror_msg + str(sp_output))
+                Telegram_send_message(info_db.output_sperror_msg + str(sp_output))
             dba_results = [r.fetchall() for r in connection.cursor.stored_results()]
             connection.conn.commit()
             return dba_results

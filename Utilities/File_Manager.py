@@ -14,6 +14,7 @@ class File_Manager():
             else:
                 list_files = sorted(os.listdir(location))
                 start_file_index = list_files.index(start_date + ".csv")
+                # print("start_file_index = " + str(start_file_index))
                 end_file = list_files[start_file_index + length_of_assessment - 1]
                 list_target_files = list_files[start_file_index:start_file_index + length_of_assessment]
                 print("list_target_files = " + str(list_target_files))

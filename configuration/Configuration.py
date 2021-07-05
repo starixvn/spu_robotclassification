@@ -117,8 +117,10 @@ class SystemConfig(object):
         self.agree_to_send_message = self.getDataBooleanConfig(
             self.config, 'ACTION_TELEGRAM', 'AGREE_TO_SEND_MESSAGE')
         # define is transfer data to CTS
-        # self.is_test_insert_CTS = int(self.getDataBooleanConfig(
-        #     self.config, 'ACTION_CTS', 'TEST_INSERT_CTS'))
+        self.insert_to_aiml = int(self.getDataBooleanConfig(
+            self.config, 'ACTION_DB', 'INSERT_TO_AIML'))
+        self.insert_to_cts = int(self.getDataBooleanConfig(
+            self.config, 'ACTION_DB', 'INSERT_TO_CTS'))
 
 
     @classmethod

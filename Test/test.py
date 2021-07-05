@@ -11,7 +11,7 @@ import pandas as pd
 # import json
 # from configuration.system_config import SystemConfig
 from mysql.connector import MySQLConnection
-# from scipy.stats import shapiro
+from Configuration.Configuration import config
 # from scipy.stats.distributions import norm
 # from datetime import date
 # from DataAccess.database_interaction import DB_Interaction
@@ -20,7 +20,8 @@ from mysql.connector import MySQLConnection
 from Helper.notify import Telegram_send_message
 from tqdm import tqdm
 import datetime
-#from RobotClassificationManagement.robot_classification_tasks import RobotClassificationTasks
+from RobotClassificationManagement.robot_classification_tasks import RobotClassificationTasks
+from Utilities.File_Manager import File_Manager
 # ENV = 'LOCAL'
 # systemConfig = SystemConfig(ENV.lower() + '_' + "config.ini", ENV)
 # def print_key(key):
@@ -72,8 +73,8 @@ if __name__=='__main__':
     # print(f"{bcolors.FAIL}Warning: No active frommets remain. Continue?{bcolors.ENDC}")
 
     # land_marks = RobotClassificationTasks.get_land_marks()
-    ls = os.listdir(departure)
-    for fn in ls:
+    # ls = os.listdir(departure)
+    # for fn in ls:
         # os.rename(arrival + fn, departure + fn)
         # if fn.startswith("robotTicket"):
         # if fn.startswith("2021-04") or fn.startswith("2021-05"):
@@ -82,7 +83,7 @@ if __name__=='__main__':
         # mile_stone = mile_stone.split("_", 1)[1]
         # datetime_object = datetime.datetime.strptime(mile_stone, "%m_%d_%Y")
         # land_mark = datetime_object.strftime("%Y-%m-%d")
-        shutil.copy(departure + fn, arrival + fn)
+        # shutil.copy(departure + fn, arrival + fn)
     # message = "Long's brother is setting up daily jobs for RC!"
     # Telegram_send_message(message)
     # a = [1,3,2]
@@ -102,4 +103,17 @@ if __name__=='__main__':
     # conn.commit()
     # cursor.close()
     # conn.close()
+    str_to_id, id_to_str = RobotClassificationTasks.transform_category_mapping(is_day_eliminated = 1, 
+                                                                        is_live_indicator_eliminated = 0,
+                                                                        is_bettype_eliminated = 0)
+    
+    data, _ = RobotClassificationTasks.read_and_preprocess_data(str_to_id, is_training = 1, is_aggregated = 1, is_entire = 0, 
+                                                                    start_date = "2021-05-03", 
+                                                                    is_day_eliminated = 1, 
+                                                                    is_live_indicator_eliminated = 0, 
+                                                                    is_bettype_eliminated = 0)
+    # data = File_Manager.read_data(config.train_data_folder_with_breaking_files, config.train_data_file_name, 0, 
+    #                                             config.length_of_training, "2021-05-02")
+    print("data\n", data.head())
+
 

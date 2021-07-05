@@ -184,11 +184,11 @@ class PredictionController():
         predict_full_info_list_right_after_training = data_SPU.to_dict(orient = 'records')
         chunks = [predict_full_info_list_right_after_training[x:x + config.chunk_size] for x in \
                     range(0, len(predict_full_info_list_right_after_training), config.chunk_size)]
-        # print("mydf\n", mydf.head())
-        for chunk in chunks:
-            chunk = json.dumps(chunk)
-            ip_param = SPU_InsertWinlossPredictionDAModel(chunk, day)
-            dba_results = BaseDA.execute("SPU_AIML_InsertWinlossPrediction", spu_aiml, ip_param, connection_spu)
+        if config.insert_to_aiml:
+            for chunk in chunks:
+                chunk = json.dumps(chunk)
+                ip_param = SPU_InsertWinlossPredictionDAModel(chunk, day)
+                dba_results = BaseDA.execute("SPU_AIML_InsertWinlossPrediction", spu_aiml, ip_param, connection_spu)
         ### =========================================================================================
 
         ### =========================================================================================
@@ -198,11 +198,11 @@ class PredictionController():
         chunks = [predict_full_info_list_right_after_training[x:x + config.chunk_size] for x in \
                     range(0, len(predict_full_info_list_right_after_training), config.chunk_size)]
         connection_cts = DataAccessConnection(cts_datacenter)
-        # ip_param = CTS_InsertRobotClassificationDAModel(jsonList, PID)
-        for chunk in chunks:
-            chunk = json.dumps(chunk)
-            ip_param = CTS_InsertRobotClassificationDAModel(chunk)
-            dba_results = BaseDA.execute("CTS_DC_RobotClassification_Insert", cts_datacenter, ip_param, connection_cts)
+        if config.insert_to_cts:
+            for chunk in chunks:
+                chunk = json.dumps(chunk)
+                ip_param = CTS_InsertRobotClassificationDAModel(chunk)
+                dba_results = BaseDA.execute("CTS_DC_RobotClassification_Insert", cts_datacenter, ip_param, connection_cts)
         ### =========================================================================================
 
         return data_SPU
@@ -233,9 +233,9 @@ class PredictionController():
         # print("mydf\n", mydf.head())
 
         connection_spu = DataAccessConnection(spu_aiml)
-        # if not config.is_test_insert_CTS:
-        for chunk in chunks:
-            print("LENGTH OF CHUNK = " + str(len(chunk)))
-            chunk = json.dumps(chunk)
-            ip_param = SPU_InsertWinlossPredictionDAModel(chunk, test_date)
-            BaseDA.execute("SPU_AIML_InsertWinlossPrediction", spu_aiml, ip_param, connection_spu)
+        if config.insert_to_aiml:
+            for chunk in chunks:
+                print("LENGTH OF CHUNK = " + str(len(chunk)))
+                chunk = json.dumps(chunk)
+                ip_param = SPU_InsertWinlossPredictionDAModel(chunk, test_date)
+                BaseDA.execute("SPU_AIML_InsertWinlossPrediction", spu_aiml, ip_param, connection_spu)

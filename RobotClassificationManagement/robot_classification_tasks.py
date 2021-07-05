@@ -261,11 +261,12 @@ class RobotClassificationTasks():
             chunks = [training_results_full_info_list[x:x + config.chunk_size] for x in \
                     range(0, len(training_results_full_info_list), config.chunk_size)]
             connection_spu = DataAccessConnection(spu_aiml)
-            for chunk in chunks:
-                # time_start3 = time.time()
-                chunk = json.dumps(chunk)
-                ip_param = SPU_InsertTrainResultsDAModel(chunk, end_training_date)
-                BaseDA.execute("SPU_AIML_InsertTrainResults",spu_aiml,ip_param,connection_spu)
+            if config.insert_to_aiml:
+                for chunk in chunks:
+                    # time_start3 = time.time()
+                    chunk = json.dumps(chunk)
+                    ip_param = SPU_InsertTrainResultsDAModel(chunk, end_training_date)
+                    BaseDA.execute("SPU_AIML_InsertTrainResults",spu_aiml,ip_param,connection_spu)
 
             message = "%s | %s | INFO | insert_to_TrainResult_Table %.2f seconds" % (config.app_name, config.ENV, time.time() - start)
             print(message)
