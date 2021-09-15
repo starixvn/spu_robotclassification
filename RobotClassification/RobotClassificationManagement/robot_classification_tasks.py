@@ -19,7 +19,7 @@ from DataAccess.DataAccessConnection import DataAccessConnection
 from DataAccess.CoreDA.BaseDA import BaseDA
 from Helper.notify import Telegram_send_message
 
-config.config = config
+# config.config = config
 logging.basicConfig(filename = config.save_dir_log + config.log_name, level = logging.INFO)
 
 class RobotClassificationTasks():
@@ -44,6 +44,8 @@ class RobotClassificationTasks():
                     df.to_csv(config.train_data_folder_with_breaking_files + land_mark + ".csv", index = False)
                     os.rename(config.train_data_folder_with_breaking_files + fn,
                                 config.back_up_folder + fn)
+            message = "----------------------------- Start Daily Jobs -----------------------------"
+            logging.info(message)
             message = "%s | %s | INFO | rename and clean data" % (config.app_name, config.ENV)
             logging.info(message)
             # if config.agree_to_send_message:
@@ -68,9 +70,8 @@ class RobotClassificationTasks():
                 os.remove(config.train_data_folder_with_breaking_files + popable_file)
             message = "%s | %s | INFO | pop a file successfully, number left = %s" % (config.app_name, config.ENV, len(files))
             logging.info(message)
-            # if config.agree_to_send_message:
-            #     Telegram_send_message(message)
-            # return start_running
+            message = "----------------------------- Done Daily Jobs -----------------------------"
+            logging.info(message)
         except Exception as e:
             message = "%s | %s | ERROR | pop_a_file function : %s %s" % (config.app_name, config.ENV, 
                                                                                         type(e).__name__, e.args)
