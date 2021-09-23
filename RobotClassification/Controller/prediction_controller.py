@@ -123,8 +123,15 @@ class PredictionController():
         y_true = mydf.IPTW
         y_pred = mydf.IPW
         mydf['PID'] = PID
-        print(str(BColors.WARNING) + "accuracy_score = " + str(accuracy_score(y_true, y_pred)) + str(BColors.ENDC))
-        return mydf
+        accuracy = accuracy_score(y_true, y_pred)
+        print(str(BColors.WARNING) + "accuracy_score = " + str(accuracy) + str(BColors.ENDC))
+        return mydf, accuracy
+    
+    def consolidate_classified_results(mydf):
+        observed_robots = mydf[mydf.IP == 0]
+        good_robots = mydf[(mydf.IP == 1) & (mydf.IPW == 0)]
+        bad_robots = mydf[(mydf.IP == 1) & (mydf.IPW == 1)]
+        return len(observed_robots), len(good_robots), len(bad_robots)
 
     def make_predictions_right_after_training_phase(cat_cus_couple_dataframe, config, day, PID): # result_of_the_day_before
 
@@ -149,11 +156,13 @@ class PredictionController():
         history_training_results_data = df
         # print("BEFORE | sub_test_data\n", sub_test_data.head())
         # history_training_results_data.to_csv(config.transformed_data_folder + "history_training_results_data.csv", index = False)
-        history_training_results_data = history_training_results_data[history_training_results_data.AD >= config.day_threshold]
+        will_be_classified = history_training_results_data[history_training_results_data.AD >= config.day_threshold]
+        not_be_eligible_for_classification = history_training_results_data[history_training_results_data.AD < config.day_threshold]
+        not_be_eligible_for_classification = len(not_be_eligible_for_classification)
         # collection_of_boundaries, merged_df = PredictionController.validate_training_results(history_training_results_data, config)
         # print("AFTER | history_training_results_data\n", history_training_results_data.head())
         # history_training_results_data.to_csv(config.transformed_data_folder + "history_training_results_data.csv", index = False)
-        merged_df = pd.merge(history_training_results_data, cat_cus_couple_dataframe, on = ['C', 'CAT'], how = 'inner')
+        merged_df = pd.merge(will_be_classified, cat_cus_couple_dataframe, on = ['C', 'CAT'], how = 'inner')
         
         mydf = pd.DataFrame()
         mydf['C'] = merged_df['C']
@@ -177,7 +186,7 @@ class PredictionController():
         mydf['FD'] = from_Date
         mydf['TD'] = to_Date
         ### =========================================================================================
-
+        observed, good, bad = PredictionController.consolidate_classified_results(mydf)
         ### =========================================================================================
         # if not config.is_test_insert_CTS:
         data_SPU = mydf[["C", "CAT", "M", "SWD", "SLD", "IP", "IPW", "PID"]]
@@ -205,7 +214,7 @@ class PredictionController():
                 dba_results = BaseDA.execute("CTS_DC_RobotClassification_Insert", cts_datacenter, ip_param, connection_cts)
         ### =========================================================================================
 
-        return data_SPU
+        return data_SPU, not_be_eligible_for_classification, observed, good, bad, len(data_CTS)
 
     def get_answer_from_test_data(test_data, config, PID, test_date):
         # print("prediction_results\n", prediction_results.head())
@@ -216,8 +225,8 @@ class PredictionController():
         concat_df = concat_df[concat_df.IP == 1]
         print("concat_df = " + str(concat_df.shape))
         # collection_of_boundaries, concat_df = PredictionController.validate_training_results(test_data, config)
-        answers = PredictionController.process_prediction_phase(concat_df, PID, 
-                                                                config.default_mean + config.default_std, config.is_raw)
+        answers, accuracy = PredictionController.process_prediction_phase(concat_df, PID, 
+                                                                            config.default_mean + config.default_std, config.is_raw)
         print("answers\n", answers.head())
         print("answers = " + str(answers.shape))                                                                
         answers_full_info_list = answers.to_dict(orient = 'records')
@@ -239,3 +248,4 @@ class PredictionController():
                 chunk = json.dumps(chunk)
                 ip_param = SPU_InsertWinlossPredictionDAModel(chunk, test_date)
                 BaseDA.execute("SPU_AIML_InsertWinlossPrediction", spu_aiml, ip_param, connection_spu)
+        return accuracy

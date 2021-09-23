@@ -334,10 +334,19 @@ class RobotClassificationTasks():
         try:
             # start = time.time()
             # print("cat_cus_couple_dataframe\n", cat_cus_couple_dataframe.head())
-            mydf = PredictionController.make_predictions_right_after_training_phase(cat_cus_couple_dataframe, config, start_predict_date, PID)
-            message = "%s | %s | INFO | Done train-predict for %s in %.2f seconds" % (config.app_name, config.ENV, 
+            mydf, ineligible_for_classification, observed, good, bad, num_pushed_to_CTS = PredictionController.make_predictions_right_after_training_phase(cat_cus_couple_dataframe, 
+                                                                                                                                                            config, 
+                                                                                                                                                            start_predict_date, 
+                                                                                                                                                            PID)
+            message1 = "%s | %s | INFO | Done train-predict for %s in %.2f seconds" % (config.app_name, config.ENV, 
                                                                                     start_predict_date, 
                                                                                     time.time() - start_running)
+            message2 = "ineligible_for_classification = %s | observed = %s | good = %s | bad = %s | num_pushed_to_CTS = %s" % (ineligible_for_classification,
+                                                                                                                                observed,
+                                                                                                                                good,
+                                                                                                                                bad,
+                                                                                                                                num_pushed_to_CTS)
+            message = message1 + " | " + message2
             print(message)
             logging.info(message)
             if config.agree_to_send_message:
@@ -355,11 +364,11 @@ class RobotClassificationTasks():
     def get_answer_from_test_data(preprocessed_test_data, PID, test_date, predict_date, start_running):
         try:
             # start = time.time()
-            PredictionController.get_answer_from_test_data(preprocessed_test_data, config, PID, test_date)
+            accuracy = PredictionController.get_answer_from_test_data(preprocessed_test_data, config, PID, test_date)
             # message = "%s | %s | INFO | preprocess_test_data_and_make_predictions %.2f seconds" % (config.app_name, config.ENV, time.time() - start)
             # print(message)
             # logging.info(message)
-            message = "%s | %s | INFO | Done collecting Answers for %s in %.2f seconds" % (config.app_name, config.ENV, predict_date, time.time() - start_running)
+            message = f"{config.app_name} | {config.ENV} | INFO | Done collecting Answers for {predict_date} in {round(time.time() - start_running, 2)} seconds | Accuracy = {round(accuracy*100, 2)} %"
             print(message)
             logging.info(message)
             if config.agree_to_send_message:

@@ -2,7 +2,7 @@
 # Lyst = String.split(',')
 # print('Lyst\n',Lyst)
 import sys
-sys.path.append("C:/Users/diego.nguyen/diegoProj/RobotClassification")
+sys.path.append("C:/Users/diego.nguyen/diegoProj/RobotClassification/RobotClassification")
 # from Model.distribution_model import DistributionModel
 # import random
 #from Utilities.File_Manager import File_Manager
@@ -103,17 +103,29 @@ if __name__=='__main__':
     # conn.commit()
     # cursor.close()
     # conn.close()
-    str_to_id, id_to_str = RobotClassificationTasks.transform_category_mapping(is_day_eliminated = 1, 
-                                                                        is_live_indicator_eliminated = 0,
-                                                                        is_bettype_eliminated = 0)
+    # str_to_id, id_to_str = RobotClassificationTasks.transform_category_mapping(is_day_eliminated = 1, 
+    #                                                                     is_live_indicator_eliminated = 0,
+    #                                                                     is_bettype_eliminated = 0)
     
-    data, _ = RobotClassificationTasks.read_and_preprocess_data(str_to_id, is_training = 1, is_aggregated = 1, is_entire = 0, 
-                                                                    start_date = "2021-05-03", 
-                                                                    is_day_eliminated = 1, 
-                                                                    is_live_indicator_eliminated = 0, 
-                                                                    is_bettype_eliminated = 0)
+    # data, _ = RobotClassificationTasks.read_and_preprocess_data(str_to_id, is_training = 1, is_aggregated = 1, is_entire = 0, 
+    #                                                                 start_date = "2021-06-13", 
+    #                                                                 is_day_eliminated = 1, 
+    #                                                                 is_live_indicator_eliminated = 0, 
+    #                                                                 is_bettype_eliminated = 0)
     # data = File_Manager.read_data(config.train_data_folder_with_breaking_files, config.train_data_file_name, 0, 
     #                                             config.length_of_training, "2021-05-02")
-    print("data\n", data.head())
+    location = "D:/Project/Robot/TRAIN_DATA/BACK_UP/BACK_UP/"
+    ls = sorted(os.listdir(location))
+    ls = ls[:30]
+    total_users = []
+    for fn in ls:
+        data = pd.read_csv(location + fn)
+        daily_users = list(set(data.custid.to_list()))
+        total_users += daily_users
+    total_users = set(total_users)
+    print("\nNumber customers = %s\n" % len(total_users))
+    # print("HEAD of data\n", data.head())
+    # print("TAIL of data\n", data.tail())
+
 
 
